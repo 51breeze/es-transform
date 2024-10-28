@@ -1,7 +1,7 @@
 {
   "name": "@easescript/transform",
   "version": "0.0.2",
-  "description": "Code Transform For EaseScript",
+  "description": "Code Transform Based For EaseScript Plugin",
   "main": "dist/index.js",
   "scripts": {
     "dev": "npm run build && jasmine ./test/index.js",
