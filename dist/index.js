@@ -8414,6 +8414,7 @@ function defineError(complier) {
     "Route params the '%s' defalut value can only is a literal type."
   ]);
 }
+var plugins = /* @__PURE__ */ new Set();
 var Plugin = class _Plugin {
   static is(value) {
     return value ? value instanceof _Plugin : false;
@@ -8427,6 +8428,7 @@ var Plugin = class _Plugin {
   #complier = null;
   #glob = new import_glob_path.default();
   constructor(name, version, options = {}) {
+    plugins.add(this);
     this.#name = name;
     this.#version = version;
     this.#options = options;
@@ -8499,7 +8501,7 @@ var Plugin = class _Plugin {
       this.#complier = complier;
     }
   }
-  dispose() {
+  done() {
   }
   async build(compilation, options = {}) {
     if (!import_Compilation.default.is(compilation)) {
