@@ -11,7 +11,7 @@ import unit.Param;
 import Reflect;
 
 //@Embed(Types='img.png');
-//@Embed('assets/style.css');
+import 'assets/style.css';
 
 import config, {name, child_name, child_config} from 'config';
 
@@ -1054,12 +1054,12 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
 import System;
 import Person;
-import * as config2 from 'config';
+import {name as php} from 'config';
 const test = new Test('test')
 describe('Test.externals', ()=>{
     it(`externals expression`, ()=>{
         expect('object').toEqual( typeof test.map() )
-        expect('php').toEqual( config2.name )
+        expect('php').toEqual( php )
         expect('Test').toEqual( System.getQualifiedObjectName(test) )
         expect('Person').toEqual( System.getQualifiedClassName(Person) )
     })

@@ -1,3 +1,4 @@
+require("./Person-4c6b0d54.js");
 const Class = require("./Class.js");
 const TestInterface = require("./com/TestInterface.js");
 const _private0 = Class.getKeySymbols("23464b8f");

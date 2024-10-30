@@ -1,7 +1,7 @@
+require("./assets/style.css.js");
 const Class = require("./Class.js");
 const config = Class.getExportDefault(require("./config.js"));
-const {name,child_name,child_config} = require("./config.js");
-const config2 = require("./config.js");
+const {name,child_name,child_config,name:php} = require("./config.js");
 const Person = require("./Person.js");
 const TestInterface = require("./com/TestInterface.js");
 const Reflect = require("./Reflect.js");
@@ -960,7 +960,7 @@ const test = new Test('test');
 describe('Test.externals',()=>{
     it(`externals expression`,()=>{
         expect('object').toEqual(typeof test.map());
-        expect('php').toEqual(config2.name);
+        expect('php').toEqual(php);
         expect('Test').toEqual(System.getQualifiedObjectName(test));
         expect('Person').toEqual(System.getQualifiedClassName(Person));
     });
