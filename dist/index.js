@@ -359,7 +359,7 @@ __export(lib_exports, {
   plugin: () => plugin
 });
 module.exports = __toCommonJS(lib_exports);
-var import_path6 = __toESM(require("path"));
+var import_path5 = __toESM(require("path"));
 var import_merge = __toESM(require("lodash/merge"));
 
 // lib/core/Plugin.js
@@ -657,11 +657,11 @@ function parseReadfileAnnotation(ctx2, stack2) {
       _suffix = _suffix.split(",").map((item) => item.trim());
     }
   }
-  let extensions2 = (stack2.compiler.options.extensions || []).map((ext) => String(ext).startsWith(".") ? ext : "." + ext);
-  if (!extensions2.includes(".es")) {
-    extensions2.push(".es");
+  let extensions = (stack2.compiler.options.extensions || []).map((ext) => String(ext).startsWith(".") ? ext : "." + ext);
+  if (!extensions.includes(".es")) {
+    extensions.push(".es");
   }
-  let suffix = _suffix || [...extensions2, ".json", ".env", ".js", ".css", ".scss", ".less"];
+  let suffix = _suffix || [...extensions, ".json", ".env", ".js", ".css", ".scss", ".less"];
   const checkSuffix = (file) => {
     if (suffixPattern) {
       return suffixPattern.test(filepath);
@@ -8564,54 +8564,10 @@ var Plugin = class _Plugin {
 };
 var Plugin_default = Plugin;
 
-// lib/core/Loader.js
-var import_Utils18 = __toESM(require("easescript/lib/core/Utils"));
-var import_path4 = __toESM(require("path"));
-var sortedKey = Symbol("sorted");
-var extensions = [".css", ".sass", ".scss"];
-var Loader = class {
-  #options = null;
-  constructor(options = {}) {
-    this.#options = options;
-  }
-  resolveId(ctx2, source, asset) {
-    let ext = import_path4.default.extname(source);
-    if (extensions.includes(ext)) {
-      let folder = ctx2.getSourceFileMappingFolder(source + ".assets");
-      if (folder) {
-        if (import_path4.default.isAbsolute(folder)) {
-          return import_Utils18.default.normalizePath(import_path4.default.join(folder, ctx2.genUniFileName(source) + ".js"));
-        } else {
-          return import_Utils18.default.normalizePath("./" + import_path4.default.join(folder, ctx2.genUniFileName(source) + ".js"));
-        }
-      }
-      return import_Utils18.default.normalizePath("./" + ctx2.genUniFileName(source) + ".js");
-    } else {
-      return source;
-    }
-  }
-  async build(ctx2, source, asset) {
-    let code = asset.code;
-    let map = null;
-    if (ctx2.options.module === "cjs") {
-      code = `module.exports=${JSON.stringify(code)};`;
-    } else {
-      code = `export default ${JSON.stringify(code)};`;
-    }
-    return {
-      code,
-      map
-    };
-  }
-};
-function createLoader(options = {}) {
-  return new Loader(options);
-}
-
 // package.json
 var package_default = {
   name: "@easescript/transform",
-  version: "0.0.4",
+  version: "0.0.5",
   description: "Code Transform Based For EaseScript Plugin",
   main: "dist/index.js",
   scripts: {
@@ -8650,7 +8606,7 @@ var package_default = {
 
 // lib/core/Polyfill.js
 var import_fs4 = __toESM(require("fs"));
-var import_path5 = __toESM(require("path"));
+var import_path4 = __toESM(require("path"));
 var TAGS_REGEXP = /(?:[\r\n]+|^)\/\/\/(?:\s+)?<(references|namespaces|export|import)\s+(.*?)\/>/g;
 var ATTRS_REGEXP = /(\w+)(?:[\s+]?=[\s+]?([\'\"])([^\2]*?)\2)?/g;
 var _createVModule = createVModule;
@@ -8701,11 +8657,11 @@ function parsePolyfillModule(file, createVModule2) {
     }
     return "";
   });
-  const info = import_path5.default.parse(file);
+  const info = import_path4.default.parse(file);
   let id = namespace ? `${namespace}.${info.name}` : info.name;
   let vm = createVModule2(id);
   requires.forEach((item) => {
-    const local = item.local ? item.local : import_path5.default.parse(item.from).name;
+    const local = item.local ? item.local : import_path4.default.parse(item.from).name;
     vm.addImport(item.from, local, item.imported);
   });
   references.forEach((item) => {
@@ -8721,14 +8677,14 @@ function parsePolyfillModule(file, createVModule2) {
   vm.setContent(content);
 }
 function createPolyfillModule(dirname) {
-  if (!import_path5.default.isAbsolute(dirname)) {
-    dirname = import_path5.default.join(__dirname, dirname);
+  if (!import_path4.default.isAbsolute(dirname)) {
+    dirname = import_path4.default.join(__dirname, dirname);
   }
   if (!import_fs4.default.existsSync(dirname)) {
     throw new Error(`Polyfills directory does not exists. on '${dirname}'`);
   }
   import_fs4.default.readdirSync(dirname).forEach((filename) => {
-    const filepath2 = import_path5.default.join(dirname, filename);
+    const filepath2 = import_path4.default.join(dirname, filename);
     if (import_fs4.default.statSync(filepath2).isFile()) {
       parsePolyfillModule(filepath2, _createVModule);
     } else if (import_fs4.default.statSync(filepath2).isDirectory()) {
@@ -8766,15 +8722,6 @@ var defaultConfig = {
   formation: {
     route: null
   },
-  loaders: {
-    enable: true,
-    rules: [
-      {
-        test: [".css", ".sass", ".less", ".postcss", ".scss", ".gif", ".svg", ".png", ".jpg", ".jpeg"],
-        loader: createLoader()
-      }
-    ]
-  },
   context: {
     include: null,
     exclude: null,
@@ -8809,9 +8756,7 @@ var defaultConfig = {
   privateChain: true,
   resolve: {
     imports: {},
-    folders: {
-      "*.css": "assets"
-    }
+    folders: {}
   },
   dependences: {
     externals: [],
@@ -8830,7 +8775,7 @@ var initialized = false;
 function plugin(options = {}) {
   if (!initialized) {
     initialized = true;
-    createPolyfillModule(import_path6.default.join(__dirname, "./polyfills"));
+    createPolyfillModule(import_path5.default.join(__dirname, "./polyfills"));
   }
   return new Plugin_default(
     package_default.name,
