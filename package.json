@@ -1,6 +1,6 @@
 {
   "name": "@easescript/transform",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Code Transform Based For EaseScript Plugin",
   "main": "dist/index.js",
   "scripts": {

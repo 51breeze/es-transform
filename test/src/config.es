@@ -1,6 +1,8 @@
 import System;
 import * as Conf1 from 'config2.es';
 
+import com.Person;
+
 System.setConfig('ssss', 222)
 
 
@@ -9,7 +11,7 @@ const config = {};
 config.env = 'prod';
 
 
-
+new Person()
 
 
 export var name = 'php';

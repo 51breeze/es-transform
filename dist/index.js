@@ -370,8 +370,8 @@ var import_glob_path = __toESM(require("glob-path"));
 var import_Utils17 = __toESM(require("easescript/lib/core/Utils"));
 
 // lib/core/Context.js
-var import_path3 = __toESM(require("path"));
-var import_fs3 = __toESM(require("fs"));
+var import_path2 = __toESM(require("path"));
+var import_fs2 = __toESM(require("fs"));
 var import_Token = __toESM(require_Token());
 
 // lib/tokens/index.js
@@ -503,118 +503,6 @@ function has(key, name) {
 
 // lib/core/Common.js
 var import_Namespace = __toESM(require("easescript/lib/core/Namespace"));
-
-// lib/core/Asset.js
-var import_path = __toESM(require("path"));
-var import_fs = __toESM(require("fs"));
-var Asset = class {
-  #code = "";
-  #type = "";
-  #file = null;
-  #sourcemap = null;
-  #local = null;
-  #imported = null;
-  #sourceId = null;
-  #id = null;
-  #changed = true;
-  constructor(sourceFile, type, id = null) {
-    this.#type = type;
-    this.#file = sourceFile;
-    this.#sourceId = sourceFile;
-    this.#id = id;
-  }
-  get code() {
-    let code = this.#code;
-    if (code) return code;
-    let file = this.file;
-    if (file && import_fs.default.existsSync(file)) {
-      this.#code = import_fs.default.readFileSync(file).toString("utf8");
-    }
-    return this.#code;
-  }
-  set code(value) {
-    this.#code = value;
-    this.#changed = true;
-  }
-  get id() {
-    return this.#id;
-  }
-  set id(value) {
-    this.#id = value;
-  }
-  get local() {
-    return this.#local;
-  }
-  set local(value) {
-    this.#local = value;
-  }
-  get imported() {
-    return this.#imported;
-  }
-  set imported(value) {
-    this.#imported = value;
-  }
-  get file() {
-    return this.#file;
-  }
-  set file(value) {
-    this.#file = value;
-  }
-  get sourceId() {
-    return this.#sourceId;
-  }
-  set sourceId(value) {
-    this.#sourceId = value;
-  }
-  get type() {
-    return this.#type;
-  }
-  get sourcemap() {
-    return this.#sourcemap;
-  }
-  set sourcemap(value) {
-    this.#sourcemap = value;
-  }
-  async build(ctx2) {
-    this.#changed = false;
-    if (ctx2.options.emitFile) {
-      let code = this.code;
-      if (ctx2.options.module === "cjs") {
-        code = `module.exports=${JSON.stringify(code)};`;
-      } else {
-        code = `export default ${JSON.stringify(code)};`;
-      }
-      let outfile = ctx2.getOutputAbsolutePath(this.sourceId);
-      import_fs.default.mkdirSync(import_path.default.dirname(outfile), { recursive: true });
-      import_fs.default.writeFileSync(outfile, code);
-    }
-  }
-};
-var records2 = /* @__PURE__ */ new Map();
-function createAsset(sourceFile, id = null, type = null) {
-  if (!type) {
-    type = import_path.default.extname(sourceFile);
-    if (type.startsWith(".")) {
-      type = type.substring(1);
-    }
-  } else {
-    type = String(type);
-  }
-  let key = sourceFile + ":" + type;
-  if (id != null) {
-    key = sourceFile + ":" + id + ":" + type;
-  }
-  let asset = records2.get(key);
-  if (!asset) {
-    records2.set(sourceFile, asset = new Asset(sourceFile, type, id));
-  }
-  return asset;
-}
-function createStyleAsset(sourceFile, id = null) {
-  return createAsset(sourceFile, id, "style");
-}
-
-// lib/core/Common.js
 var emptyObject = {};
 var emptyArray = [];
 var annotationIndexers = {
@@ -1217,13 +1105,9 @@ function parseImportDeclaration(ctx2, stack2, context = null, graph = null) {
           context
         });
         if (source) {
-          let sourceFile = source;
-          source = ctx2.getAssetsImportSource(source, stack2.compilation);
-          if (source) {
-            let asset = createAsset(source);
-            asset.file = sourceFile;
-            graph.addAsset(asset);
-          }
+          let asset = ctx2.createAsset(source);
+          source = ctx2.getAssetsImportSource(asset, stack2.compilation);
+          graph.addAsset(asset);
         }
       }
     }
@@ -2977,7 +2861,7 @@ function Declarator_default(ctx2, stack2) {
 }
 
 // lib/tokens/DeclaratorDeclaration.js
-function DeclaratorDeclaration_default(ctx2, stack2, type) {
+function DeclaratorDeclaration_default(ctx2, stack2) {
 }
 
 // lib/tokens/DoWhileStatement.js
@@ -5327,8 +5211,8 @@ function StructTableColumnDefinition_default(ctx2, stack2) {
 }
 
 // lib/core/TableBuilder.js
-var import_path2 = __toESM(require("path"));
-var import_fs2 = __toESM(require("fs"));
+var import_path = __toESM(require("path"));
+var import_fs = __toESM(require("fs"));
 
 // lib/core/Generator.js
 var import_source_map = __toESM(require("source-map"));
@@ -6411,26 +6295,26 @@ var TableBuilder = class {
     let file = this.type + ".sql";
     let code = this.getTables().join("\n");
     file = this.outfile || (this.outfile = ctx2.getOutputAbsolutePath(file));
-    import_fs2.default.mkdirSync(import_path2.default.dirname(file), { recursive: true });
-    import_fs2.default.writeFileSync(file, code);
+    import_fs.default.mkdirSync(import_path.default.dirname(file), { recursive: true });
+    import_fs.default.writeFileSync(file, code);
   }
 };
-var records3 = /* @__PURE__ */ new Map();
+var records2 = /* @__PURE__ */ new Map();
 function getBuilder(type) {
-  if (!records3.has(type)) {
+  if (!records2.has(type)) {
     throw new Error(`The '${type}' table builder is not exists.`);
   }
-  return records3.get(type);
+  return records2.get(type);
 }
 function addBuilder(type, builder) {
   if (builder instanceof TableBuilder) {
-    records3.set(type, builder);
+    records2.set(type, builder);
   } else {
     throw new Error("Table builder must is extends TableBuilder.");
   }
 }
 function getAllBuilder() {
-  return Array.from(records3.values());
+  return Array.from(records2.values());
 }
 addBuilder("mysql", new TableBuilder("mysql"));
 
@@ -7083,17 +6967,28 @@ var BuildGraph = class {
     }
     assets.add(asset);
   }
+  findAsset(filter) {
+    let assets = this.#assets;
+    if (assets) {
+      for (let asset of assets) {
+        if (filter(asset)) {
+          return asset;
+        }
+      }
+    }
+    return null;
+  }
 };
-var records4 = /* @__PURE__ */ new Map();
+var records3 = /* @__PURE__ */ new Map();
 function createBuildGraph(moduleOrCompilation, module2 = null) {
-  let old = records4.get(moduleOrCompilation);
+  let old = records3.get(moduleOrCompilation);
   if (old) return old;
   let graph = new BuildGraph(module2);
-  records4.set(moduleOrCompilation, graph);
+  records3.set(moduleOrCompilation, graph);
   return graph;
 }
 function hasBuildGraph(moduleOrCompilation) {
-  return records4.has(moduleOrCompilation);
+  return records3.has(moduleOrCompilation);
 }
 
 // lib/core/VirtualModule.js
@@ -7327,7 +7222,7 @@ var REFS_UP_CLASS = 8;
 var REFS_UP_FUN = 4;
 var REFS_UP = 2;
 var REFS_DOWN = 1;
-var records5 = /* @__PURE__ */ new Map();
+var records4 = /* @__PURE__ */ new Map();
 var Manage = class {
   #ctxScope = null;
   #cache = /* @__PURE__ */ new Map();
@@ -7397,9 +7292,9 @@ var Manage = class {
   }
 };
 function _getVariableManage(ctxScope) {
-  let manage = records5.get(ctxScope);
+  let manage = records4.get(ctxScope);
   if (!manage) {
-    records5.set(ctxScope, manage = new Manage(ctxScope));
+    records4.set(ctxScope, manage = new Manage(ctxScope));
   }
   return manage;
 }
@@ -7550,6 +7445,12 @@ var Context = class _Context extends import_Token.default {
   getBuildOptions() {
     return this.#buildOptions;
   }
+  createAsset(source) {
+    return this.plugin.assets.createAsset(source);
+  }
+  createStyleAsset(source, index) {
+    return this.plugin.assets.createStyleAsset(source, index);
+  }
   createToken(stack2) {
     if (!stack2) return null;
     const type = stack2.toString();
@@ -7558,6 +7459,7 @@ var Context = class _Context extends import_Token.default {
     if (type === "CallDefinition") return null;
     if (type === "TypeDefinition") return null;
     if (type === "TypeGenericDefinition") return null;
+    if (type === "DeclaratorDeclaration") return null;
     const token = this.#tokens(type);
     return this.#createToken(token, stack2, type);
   }
@@ -7815,15 +7717,11 @@ var Context = class _Context extends import_Token.default {
               context
             });
             if (source) {
-              source = this.getAssetsImportSource(source, context);
-              if (source) {
-                let _asset = createAsset(source);
-                _asset.file = asset.resolve;
-                _asset.local = asset.assign;
-                if (graph) {
-                  graph.addAsset(_asset);
-                }
-              }
+              let _asset = this.createAsset(source);
+              _asset.file = asset.resolve;
+              _asset.local = asset.assign;
+              graph.addAsset(_asset);
+              source = this.getAssetsImportSource(_asset, context);
             }
           }
           if (source) {
@@ -7846,18 +7744,14 @@ var Context = class _Context extends import_Token.default {
           const lang = attrs.lang || attrs.type || "css";
           const suffix = "file." + lang;
           let source = this.getModuleResourceId(context, { ...attrs, index, type, lang, [suffix]: "" });
-          source = this.getAssetsImportSource(source, context);
-          if (source) {
-            let _asset = createStyleAsset(source, index);
-            let importSource = this.addImport(source);
-            _asset.code = asset.content;
-            importSource.setSourceTarget(asset);
-            importSource.setSourceContext(context);
-            if (graph) {
-              graph.addAsset(_asset);
-              graph.addImport(importSource);
-            }
-          }
+          let _asset = this.createStyleAsset(source, index);
+          _asset.code = asset.content;
+          source = this.getAssetsImportSource(_asset, context);
+          let importSource = this.addImport(source);
+          importSource.setSourceTarget(asset);
+          importSource.setSourceContext(context);
+          graph.addImport(importSource);
+          graph.addAsset(_asset);
         }
       });
     }
@@ -8059,17 +7953,13 @@ var Context = class _Context extends import_Token.default {
     }
     return null;
   }
-  getAssetsImportSource(source, context) {
+  getAssetsImportSource(asset, context) {
+    let source = asset.sourceId;
     if (this.options.emitFile) {
-      if (source.includes("?")) {
-        let [file] = source.split("?", 2);
-        source = import_path3.default.join(import_path3.default.dirname(file), this.genUniFileName(source));
-      }
-      source = this.getOutputRelativePath(source, context);
-      let ext = this.getOutputExtName();
-      if (!source.endsWith(ext)) {
-        source += ext;
-      }
+      source = this.getRelativePath(
+        asset.getOutFile(this),
+        this.getOutputAbsolutePath(context)
+      );
     }
     return source;
   }
@@ -8084,13 +7974,13 @@ var Context = class _Context extends import_Token.default {
       source = source.replace("${__filename}", import_Utils16.default.isCompilation(owner) ? owner.file : this.target.file);
     }
     if (isString && source.includes("/node_modules/")) {
-      if (import_path3.default.isAbsolute(source)) return source;
+      if (import_path2.default.isAbsolute(source)) return source;
       if (!sourceId) {
         return this.resolveSourceFileMappingPath(source, "imports") || source;
       }
       return sourceId;
     }
-    if (isString && !import_path3.default.isAbsolute(source)) {
+    if (isString && !import_path2.default.isAbsolute(source)) {
       return source;
     }
     if (config.emitFile) {
@@ -8104,16 +7994,17 @@ var Context = class _Context extends import_Token.default {
   resolveSourceFileMappingPath(file, group, delimiter = "/") {
     return this.plugin.resolveSourceId(file, group, delimiter);
   }
-  genUniFileName(source) {
+  genUniFileName(source, suffix = null) {
     source = String(source);
     let query = source.includes("?");
-    if (import_path3.default.isAbsolute(source) || query) {
+    if (import_path2.default.isAbsolute(source) || query) {
       let file = source;
       if (query) {
         file = source.split("?")[0];
       }
-      let ext = import_path3.default.extname(file);
-      return import_path3.default.basename(file, ext) + "-" + (0, import_crypto2.createHash)("sha256").update(source).digest("hex").substring(0, 8) + ext;
+      let ext = import_path2.default.extname(file);
+      suffix = suffix || ext;
+      return import_path2.default.basename(file, ext) + "-" + (0, import_crypto2.createHash)("sha256").update(source).digest("hex").substring(0, 8) + suffix;
     }
     return source;
   }
@@ -8134,7 +8025,7 @@ var Context = class _Context extends import_Token.default {
     let folder = isStr ? this.getSourceFileMappingFolder(source) : this.getModuleMappingFolder(source);
     let filename = null;
     if (isStr) {
-      filename = folder ? import_path3.default.basename(source) : this.compiler.getRelativeWorkspacePath(source, true) || this.genUniFileName(source);
+      filename = folder ? import_path2.default.basename(source) : this.compiler.getRelativeWorkspacePath(source, true) || this.genUniFileName(source);
     } else {
       if (import_Utils16.default.isModule(source)) {
         if (source.isDeclaratorModule) {
@@ -8146,29 +8037,32 @@ var Context = class _Context extends import_Token.default {
       } else if (isVModule(source)) {
         filename = folder ? source.id : source.getName("/");
       } else if (source.file) {
-        filename = folder ? import_path3.default.basename(source.file) : this.compiler.getRelativeWorkspacePath(source.file) || this.genUniFileName(source.file);
+        filename = folder ? import_path2.default.basename(source.file) : this.compiler.getRelativeWorkspacePath(source.file) || this.genUniFileName(source.file);
       }
     }
     if (!filename) {
       throw new Error("File name not resolved correctly");
     }
-    let info = import_path3.default.parse(filename);
+    let info = import_path2.default.parse(filename);
     if (!info.ext || this.compiler.isExtensionName(info.ext)) {
-      filename = import_path3.default.join(info.dir, info.name + suffix);
+      filename = import_path2.default.join(info.dir, info.name + suffix);
     }
     let result = null;
     if (folder) {
       result = import_Utils16.default.normalizePath(
-        import_path3.default.resolve(
-          import_path3.default.isAbsolute(folder) ? import_path3.default.join(folder, filename) : import_path3.default.join(output, folder, filename)
+        import_path2.default.resolve(
+          import_path2.default.isAbsolute(folder) ? import_path2.default.join(folder, filename) : import_path2.default.join(output, folder, filename)
         )
       );
     } else {
       result = import_Utils16.default.normalizePath(
-        import_path3.default.resolve(
-          import_path3.default.join(output, filename)
+        import_path2.default.resolve(
+          import_path2.default.join(output, filename)
         )
       );
+    }
+    if (result.includes("?")) {
+      result = import_path2.default.join(import_path2.default.dirname(result), this.genUniFileName(result, import_path2.default.extname(result)));
     }
     set(source, "Context.getOutputAbsolutePath", result);
     return result;
@@ -8181,8 +8075,8 @@ var Context = class _Context extends import_Token.default {
   }
   getRelativePath(source, context) {
     return "./" + import_Utils16.default.normalizePath(
-      import_path3.default.relative(
-        import_path3.default.dirname(context),
+      import_path2.default.relative(
+        import_path2.default.dirname(context),
         source
       )
     );
@@ -8194,11 +8088,11 @@ var Context = class _Context extends import_Token.default {
   }
   async emit(buildGraph) {
     let outfile = buildGraph.outfile;
-    import_fs3.default.mkdirSync(import_path3.default.dirname(outfile), { recursive: true });
-    import_fs3.default.writeFileSync(outfile, buildGraph.code);
+    import_fs2.default.mkdirSync(import_path2.default.dirname(outfile), { recursive: true });
+    import_fs2.default.writeFileSync(outfile, buildGraph.code);
     let sourcemap = buildGraph.sourcemap;
     if (sourcemap) {
-      import_fs3.default.writeFileSync(outfile + ".map", JSON.stringify(sourcemap.toJSON()));
+      import_fs2.default.writeFileSync(outfile + ".map", JSON.stringify(sourcemap.toJSON()));
     }
   }
   error(message, stack2 = null) {
@@ -8318,10 +8212,10 @@ async function buildAssets(ctx2, buildGraph) {
   );
 }
 function createBuilder(plugin2) {
-  const buildContext = (records6 = /* @__PURE__ */ new Map(), options = {}) => {
+  const buildContext = (records5 = /* @__PURE__ */ new Map(), options = {}) => {
     const builder = async (compiOrVModule) => {
-      if (records6.has(compiOrVModule)) {
-        return records6.get(compiOrVModule);
+      if (records5.has(compiOrVModule)) {
+        return records5.get(compiOrVModule);
       }
       let buildGraph = null;
       let ctx2 = new Context_default(plugin2, compiOrVModule);
@@ -8334,7 +8228,7 @@ function createBuilder(plugin2) {
         }
         buildGraph = await buildProgram(ctx2, compiOrVModule);
       }
-      records6.set(compiOrVModule, buildGraph);
+      records5.set(compiOrVModule, buildGraph);
       if (ctx2.options.emitFile) {
         const deps = ctx2.getAllDependencies();
         const vms = /* @__PURE__ */ new Set();
@@ -8369,7 +8263,6 @@ function createBuilder(plugin2) {
         await Promise.all(
           Array.from(vms.values()).map((vm) => builder(vm))
         );
-        await buildAssets(ctx2, buildGraph);
         await ctx2.emit(buildGraph);
       } else {
         const deps = ctx2.getAllDependencies();
@@ -8391,13 +8284,157 @@ function createBuilder(plugin2) {
             }
           }
         });
-        await buildAssets(ctx2, buildGraph);
-        return buildGraph;
       }
+      await buildAssets(ctx2, buildGraph);
+      return buildGraph;
     };
     return builder;
   };
   return buildContext;
+}
+
+// lib/core/Asset.js
+var import_path3 = __toESM(require("path"));
+var import_fs3 = __toESM(require("fs"));
+var Asset = class {
+  #code = "";
+  #type = "";
+  #file = null;
+  #sourcemap = null;
+  #local = null;
+  #imported = null;
+  #sourceId = null;
+  #outfile = null;
+  #id = null;
+  #changed = true;
+  constructor(sourceFile, type, id = null) {
+    this.#type = type;
+    this.#file = sourceFile;
+    this.#sourceId = sourceFile;
+    this.#id = id;
+  }
+  get code() {
+    let code = this.#code;
+    if (code) return code;
+    let file = this.file;
+    if (file && import_fs3.default.existsSync(file)) {
+      this.#code = import_fs3.default.readFileSync(file).toString("utf8");
+    }
+    return this.#code;
+  }
+  set code(value) {
+    this.#code = value;
+    this.#changed = true;
+  }
+  get id() {
+    return this.#id;
+  }
+  set id(value) {
+    this.#id = value;
+  }
+  get local() {
+    return this.#local;
+  }
+  set local(value) {
+    this.#local = value;
+  }
+  get imported() {
+    return this.#imported;
+  }
+  set imported(value) {
+    this.#imported = value;
+  }
+  get file() {
+    return this.#file;
+  }
+  set file(value) {
+    this.#file = value;
+  }
+  get sourceId() {
+    return this.#sourceId;
+  }
+  set sourceId(value) {
+    this.#sourceId = value;
+  }
+  get type() {
+    return this.#type;
+  }
+  get sourcemap() {
+    return this.#sourcemap;
+  }
+  set sourcemap(value) {
+    this.#sourcemap = value;
+  }
+  getOutFile(ctx2) {
+    if (this.#outfile) return this.#outfile;
+    let source = ctx2.getOutputAbsolutePath(this.sourceId);
+    let ext = ctx2.getOutputExtName();
+    if (!source.endsWith(ext)) {
+      source += ext;
+    }
+    this.#outfile = source;
+    return source;
+  }
+  async build(ctx2) {
+    if (!this.#changed) return;
+    this.#changed = false;
+    if (ctx2.options.emitFile) {
+      let code = this.code;
+      if (ctx2.options.module === "cjs") {
+        code = `module.exports=${JSON.stringify(code)};`;
+      } else {
+        code = `export default ${JSON.stringify(code)};`;
+      }
+      let outfile = this.getOutFile(ctx2);
+      import_fs3.default.mkdirSync(import_path3.default.dirname(outfile), { recursive: true });
+      import_fs3.default.writeFileSync(outfile, code);
+    }
+  }
+};
+function createAssets(AssetFactory) {
+  const records5 = /* @__PURE__ */ new Map();
+  function createAsset(sourceFile, id = null, type = null) {
+    if (!type) {
+      type = import_path3.default.extname(sourceFile);
+      if (type.startsWith(".")) {
+        type = type.substring(1);
+      }
+    } else {
+      type = String(type);
+    }
+    let key = sourceFile + ":" + type;
+    if (id != null) {
+      key = sourceFile + ":" + id + ":" + type;
+    }
+    let asset = records5.get(key);
+    if (!asset) {
+      records5.set(sourceFile, asset = new AssetFactory(sourceFile, type, id));
+    }
+    return asset;
+  }
+  function createStyleAsset(sourceFile, id = null) {
+    return createAsset(sourceFile, id, "style");
+  }
+  function getAsset(sourceFile, id = null, type = "") {
+    let key = sourceFile + ":" + type;
+    if (id) {
+      key = sourceFile + ":" + id + ":" + type;
+    }
+    return records5.get(key);
+  }
+  function getStyleAsset(sourceFile, id = null) {
+    return getAsset(sourceFile, id, "style");
+  }
+  function getAssets() {
+    return Array.from(records5.values());
+  }
+  return {
+    createAsset,
+    createStyleAsset,
+    getStyleAsset,
+    getAsset,
+    getAssets
+  };
 }
 
 // lib/core/Plugin.js
@@ -8426,6 +8463,7 @@ var Plugin = class _Plugin {
   #initialized = false;
   #builder = null;
   #complier = null;
+  #assets = null;
   #glob = new import_glob_path.default();
   constructor(name, version, options = {}) {
     plugins.add(this);
@@ -8434,6 +8472,7 @@ var Plugin = class _Plugin {
     this.#options = options;
     this.resolveRules();
     this.#builder = createBuilder(this);
+    this.#assets = createAssets(Asset);
     if (options.mode) {
       options.metadata.env.NODE_ENV = options.mode;
     }
@@ -8446,6 +8485,9 @@ var Plugin = class _Plugin {
   }
   get version() {
     return this.#version;
+  }
+  get assets() {
+    return this.#assets;
   }
   getComplier() {
     return this.#complier;
@@ -8511,6 +8553,12 @@ var Plugin = class _Plugin {
       this.init(compilation.complier);
     }
     const builder = this.#builder(this.#records, options);
+    if (options.moduleId) {
+      compilation = getVModule(options.moduleId);
+      if (!compilation) {
+        throw new Error(`The '${options.moduleId}' virtual module does not exists.`);
+      }
+    }
     return await builder(compilation);
   }
 };
@@ -8762,7 +8810,7 @@ var defaultConfig = {
   resolve: {
     imports: {},
     folders: {
-      "*.assets": "assets"
+      "*.css": "assets"
     }
   },
   dependences: {
