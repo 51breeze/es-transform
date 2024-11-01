@@ -4,12 +4,6 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -32,347 +26,335 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// lib/core/Node.js
-var Node, Node_default;
-var init_Node = __esm({
-  "lib/core/Node.js"() {
-    Node = class _Node {
-      static is(value) {
-        return value ? value instanceof _Node : false;
-      }
-      static create(type, stack2) {
-        return new _Node(type, stack2);
-      }
-      constructor(type, stack2 = null) {
-        this.type = type;
-        if (stack2 && stack2.node && stack2.node.loc) {
-          this.loc = stack2.node.loc;
-        }
-      }
-    };
-    Node_default = Node;
-  }
-});
-
-// lib/core/Token.js
-var require_Token = __commonJS({
-  "lib/core/Token.js"(exports2, module2) {
-    init_Node();
-    var Token2 = class {
-      createNode(stack2, type) {
-        const isString = typeof stack2 === "string";
-        if (!type) {
-          type = isString ? stack2 : stack2.toString();
-        }
-        if (!type) return null;
-        return Node_default.create(type, isString ? null : stack2);
-      }
-      createIdentifier(value, stack2) {
-        let node = this.createNode(stack2, "Identifier");
-        node.value = String(value);
-        node.raw = node.value;
-        return node;
-      }
-      createBlockStatement() {
-        const node = this.createNode("BlockStatement");
-        node.body = [];
-        return node;
-      }
-      createBinaryExpression(left, right, operator) {
-        const node = this.createNode("BinaryExpression");
-        node.left = left;
-        node.right = right;
-        node.operator = operator;
-        return node;
-      }
-      createLogicalExpression(left, right, operator = "&&") {
-        const node = this.createNode("LogicalExpression");
-        node.left = left;
-        node.right = right;
-        node.operator = operator;
-        return node;
-      }
-      createTemplateLiteral(quasis, expressions) {
-        const node = this.createNode("TemplateLiteral");
-        node.quasis = quasis;
-        node.expressions = expressions;
-        return node;
-      }
-      createTemplateElement(text) {
-        const node = this.createNode("TemplateElement");
-        node.value = text;
-        return node;
-      }
-      createUpdateExpression(argument, operator, prefix = false) {
-        const node = this.createNode("UpdateExpression");
-        node.argument = argument;
-        node.operator = operator;
-        node.prefix = prefix;
-      }
-      createFunctionExpression(block, params = []) {
-        const node = this.createNode("FunctionExpression");
-        node.params = params;
-        node.body = block;
-        return node;
-      }
-      createFunctionDeclaration(key, block, params = []) {
-        const node = this.createFunctionExpression(block, params);
-        node.type = "FunctionDeclaration";
-        node.key = this.createIdentifier(key);
-        return node;
-      }
-      createArrowFunctionExpression(block, params = []) {
-        const node = this.createNode("ArrowFunctionExpression");
-        node.params = params;
-        node.body = block;
-        return node;
-      }
-      createReturnStatement(argument) {
-        const node = this.createNode("ReturnStatement");
-        if (argument) {
-          node.argument = argument;
-        }
-        return node;
-      }
-      createMethodDefinition(key, block, params = []) {
-        const node = this.createFunctionExpression(block, params);
-        node.type = "MethodDefinition";
-        node.key = this.createIdentifier(key);
-        return node;
-      }
-      createObjectExpression(properties, stack2) {
-        const node = this.createNode(stack2, "ObjectExpression");
-        node.properties = properties || [];
-        return node;
-      }
-      createArrayExpression(elements, stack2) {
-        const node = this.createNode(stack2, "ArrayExpression");
-        node.elements = elements || [];
-        return node;
-      }
-      createObjectPattern(properties) {
-        const node = this.createNode("ObjectPattern");
-        node.properties = properties;
-        return node;
-      }
-      createProperty(key, init, stack2) {
-        const node = this.createNode(stack2, "Property");
-        node.key = key;
-        node.computed = key.computed;
-        node.init = init;
-        return node;
-      }
-      createSpreadElement(argument) {
-        const node = this.createNode("SpreadElement");
-        node.argument = argument;
-        return node;
-      }
-      createMemberExpression(items, stack2) {
-        let object = items.shift();
-        while (items.length > 1) {
-          const _node = this.createNode("MemberExpression");
-          _node.object = object;
-          _node.property = items.shift();
-          object = _node;
-        }
-        const node = this.createNode(stack2, "MemberExpression");
-        node.object = object;
-        node.property = items.shift();
-        return node;
-      }
-      createComputeMemberExpression(items, stack2) {
-        const node = this.createMemberExpression(items, stack2);
-        node.computed = true;
-        return node;
-      }
-      createCallExpression(callee, args, stack2) {
-        const node = this.createNode(stack2, "CallExpression");
-        node.callee = callee;
-        node.arguments = args;
-        return node;
-      }
-      createNewExpression(callee, args, stack2) {
-        const node = this.createNode(stack2, "NewExpression");
-        node.callee = callee;
-        node.arguments = args;
-        return node;
-      }
-      createAssignmentExpression(left, right) {
-        const node = this.createNode("AssignmentExpression");
-        node.left = left;
-        node.right = right;
-        return node;
-      }
-      createExpressionStatement(expressions) {
-        const node = this.createNode("ExpressionStatement");
-        node.expression = expressions;
-        return node;
-      }
-      createMultipleStatement(expressions) {
-        const node = this.createNode("MultipleStatement");
-        node.expressions = expressions;
-        return node;
-      }
-      createSequenceExpression(items) {
-        const node = this.createNode("SequenceExpression");
-        node.expressions = items;
-        return node;
-      }
-      createParenthesizedExpression(expression) {
-        const node = this.createNode("ParenthesizedExpression");
-        node.expression = expression;
-        return node;
-      }
-      createVariableDeclaration(kind, items, stack2) {
-        const node = this.createNode(stack2, "VariableDeclaration");
-        node.kind = kind;
-        node.declarations = items;
-        return node;
-      }
-      createVariableDeclarator(id, init, stack2) {
-        const node = this.createNode(stack2, "VariableDeclarator");
-        node.id = id;
-        node.init = init;
-        return node;
-      }
-      createLiteral(value, raw, stack2) {
-        const node = this.createNode(stack2, "Literal");
-        node.value = value;
-        if (raw === void 0) {
-          if (typeof value === "string") {
-            node.raw = `"${value}"`;
-          } else {
-            node.raw = String(value);
-          }
-        } else {
-          node.raw = String(value);
-        }
-        return node;
-      }
-      createClassDeclaration() {
-        const node = this.createNode("ClassDeclaration");
-        node.body = this.createBlockStatement();
-        return node;
-      }
-      createChunkExpression(value, newLine = true, semicolon = false) {
-        const node = this.createNode("ChunkExpression");
-        node.newLine = newLine;
-        node.semicolon = semicolon;
-        node.value = value;
-        node.raw = value;
-        return node;
-      }
-      createThisExpression(stack2) {
-        return this.createNode(stack2, "ThisExpression");
-      }
-      createSuperExpression(value, stack2) {
-        const node = this.createNode(stack2, "SuperExpression");
-        node.value = value;
-        return node;
-      }
-      createImportDeclaration(source, specifiers, stack2) {
-        const node = this.createNode(stack2, "ImportDeclaration");
-        node.source = this.createLiteral(source);
-        node.specifiers = specifiers;
-        return node;
-      }
-      createImportSpecifier(local, imported = null, hasAs = false) {
-        if (!local) return null;
-        if (imported && !hasAs) {
-          const node = this.createNode("ImportSpecifier");
-          node.imported = this.createIdentifier(imported);
-          node.local = this.createIdentifier(local);
-          return node;
-        } else if (hasAs) {
-          const node = this.createNode("ImportNamespaceSpecifier");
-          node.local = this.createIdentifier(local);
-          return node;
-        } else {
-          const node = this.createNode("ImportDefaultSpecifier");
-          node.local = this.createIdentifier(local);
-          return node;
-        }
-      }
-      createExportAllDeclaration(source, exported, stack2) {
-        const node = this.createNode(stack2, "ExportAllDeclaration");
-        if (exported === "*") exported = null;
-        node.exported = exported ? this.createIdentifier(exported) : null;
-        if (!Node_default.is(source)) {
-          node.source = this.createLiteral(source);
-        } else {
-          node.source = source;
-        }
-        return node;
-      }
-      createExportDefaultDeclaration(declaration, stack2) {
-        const node = this.createNode(stack2, "ExportDefaultDeclaration");
-        if (!Node_default.is(declaration)) {
-          declaration = this.createIdentifier(declaration);
-        }
-        node.declaration = declaration;
-        return node;
-      }
-      createExportNamedDeclaration(declaration, source = null, specifiers = [], stack2 = null) {
-        const node = this.createNode(stack2, "ExportNamedDeclaration");
-        if (declaration) {
-          node.declaration = declaration;
-        } else {
-          if (source) {
-            if (!Node_default.is(source)) {
-              node.source = this.createLiteral(source);
-            } else {
-              node.source = source;
-            }
-          }
-          if (specifiers.length > 0) {
-            node.specifiers = specifiers;
-          } else {
-            throw new Error(`ExportNamedDeclaration arguments 'declaration' or 'source' must have one`);
-          }
-        }
-        return node;
-      }
-      createExportSpecifier(local, exported = null, stack2 = null) {
-        const node = this.createNode(stack2, "ExportSpecifier");
-        if (!Node_default.is(exported || local)) {
-          node.exported = this.createIdentifier(exported || local);
-        } else {
-          node.exported = exported || local;
-        }
-        if (!Node_default.is(local)) {
-          node.local = this.createIdentifier(local);
-        } else {
-          node.local = local;
-        }
-        return node;
-      }
-    };
-    module2.exports = Token2;
-  }
-});
-
 // lib/index.js
 var lib_exports = {};
 __export(lib_exports, {
+  Plugin: () => Plugin_default,
   default: () => lib_default,
-  getOptions: () => getOptions,
-  plugin: () => plugin
+  getOptions: () => getOptions
 });
 module.exports = __toCommonJS(lib_exports);
-var import_path5 = __toESM(require("path"));
 var import_merge = __toESM(require("lodash/merge"));
 
 // lib/core/Plugin.js
 var import_Compilation = __toESM(require("easescript/lib/core/Compilation"));
-var import_glob_path = __toESM(require("glob-path"));
+var import_path5 = __toESM(require("path"));
 
 // lib/core/Builder.js
 var import_Utils17 = __toESM(require("easescript/lib/core/Utils"));
 
 // lib/core/Context.js
 var import_path2 = __toESM(require("path"));
-var import_fs2 = __toESM(require("fs"));
-var import_Token = __toESM(require_Token());
+var import_fs3 = __toESM(require("fs"));
+
+// lib/core/Node.js
+var Node = class _Node {
+  static is(value) {
+    return value ? value instanceof _Node : false;
+  }
+  static create(type, stack2) {
+    return new _Node(type, stack2);
+  }
+  constructor(type, stack2 = null) {
+    this.type = type;
+    if (stack2 && stack2.node && stack2.node.loc) {
+      this.loc = stack2.node.loc;
+    }
+  }
+};
+var Node_default = Node;
+
+// lib/core/Token.js
+var Token = class {
+  createNode(stack2, type) {
+    const isString = typeof stack2 === "string";
+    if (!type) {
+      type = isString ? stack2 : stack2.toString();
+    }
+    if (!type) return null;
+    return Node_default.create(type, isString ? null : stack2);
+  }
+  createIdentifier(value, stack2) {
+    let node = this.createNode(stack2, "Identifier");
+    node.value = String(value);
+    node.raw = node.value;
+    return node;
+  }
+  createBlockStatement() {
+    const node = this.createNode("BlockStatement");
+    node.body = [];
+    return node;
+  }
+  createBinaryExpression(left, right, operator) {
+    const node = this.createNode("BinaryExpression");
+    node.left = left;
+    node.right = right;
+    node.operator = operator;
+    return node;
+  }
+  createLogicalExpression(left, right, operator = "&&") {
+    const node = this.createNode("LogicalExpression");
+    node.left = left;
+    node.right = right;
+    node.operator = operator;
+    return node;
+  }
+  createTemplateLiteral(quasis, expressions) {
+    const node = this.createNode("TemplateLiteral");
+    node.quasis = quasis;
+    node.expressions = expressions;
+    return node;
+  }
+  createTemplateElement(text) {
+    const node = this.createNode("TemplateElement");
+    node.value = text;
+    return node;
+  }
+  createUpdateExpression(argument, operator, prefix = false) {
+    const node = this.createNode("UpdateExpression");
+    node.argument = argument;
+    node.operator = operator;
+    node.prefix = prefix;
+  }
+  createFunctionExpression(block, params = []) {
+    const node = this.createNode("FunctionExpression");
+    node.params = params;
+    node.body = block;
+    return node;
+  }
+  createFunctionDeclaration(key, block, params = []) {
+    const node = this.createFunctionExpression(block, params);
+    node.type = "FunctionDeclaration";
+    node.key = this.createIdentifier(key);
+    return node;
+  }
+  createArrowFunctionExpression(block, params = []) {
+    const node = this.createNode("ArrowFunctionExpression");
+    node.params = params;
+    node.body = block;
+    return node;
+  }
+  createReturnStatement(argument) {
+    const node = this.createNode("ReturnStatement");
+    if (argument) {
+      node.argument = argument;
+    }
+    return node;
+  }
+  createMethodDefinition(key, block, params = []) {
+    const node = this.createFunctionExpression(block, params);
+    node.type = "MethodDefinition";
+    node.key = this.createIdentifier(key);
+    return node;
+  }
+  createObjectExpression(properties, stack2) {
+    const node = this.createNode(stack2, "ObjectExpression");
+    node.properties = properties || [];
+    return node;
+  }
+  createArrayExpression(elements, stack2) {
+    const node = this.createNode(stack2, "ArrayExpression");
+    node.elements = elements || [];
+    return node;
+  }
+  createObjectPattern(properties) {
+    const node = this.createNode("ObjectPattern");
+    node.properties = properties;
+    return node;
+  }
+  createProperty(key, init, stack2) {
+    const node = this.createNode(stack2, "Property");
+    node.key = key;
+    node.computed = key.computed;
+    node.init = init;
+    return node;
+  }
+  createSpreadElement(argument) {
+    const node = this.createNode("SpreadElement");
+    node.argument = argument;
+    return node;
+  }
+  createMemberExpression(items, stack2) {
+    let object = items.shift();
+    while (items.length > 1) {
+      const _node = this.createNode("MemberExpression");
+      _node.object = object;
+      _node.property = items.shift();
+      object = _node;
+    }
+    const node = this.createNode(stack2, "MemberExpression");
+    node.object = object;
+    node.property = items.shift();
+    return node;
+  }
+  createComputeMemberExpression(items, stack2) {
+    const node = this.createMemberExpression(items, stack2);
+    node.computed = true;
+    return node;
+  }
+  createCallExpression(callee, args, stack2) {
+    const node = this.createNode(stack2, "CallExpression");
+    node.callee = callee;
+    node.arguments = args;
+    return node;
+  }
+  createNewExpression(callee, args, stack2) {
+    const node = this.createNode(stack2, "NewExpression");
+    node.callee = callee;
+    node.arguments = args;
+    return node;
+  }
+  createAssignmentExpression(left, right) {
+    const node = this.createNode("AssignmentExpression");
+    node.left = left;
+    node.right = right;
+    return node;
+  }
+  createExpressionStatement(expressions) {
+    const node = this.createNode("ExpressionStatement");
+    node.expression = expressions;
+    return node;
+  }
+  createMultipleStatement(expressions) {
+    const node = this.createNode("MultipleStatement");
+    node.expressions = expressions;
+    return node;
+  }
+  createSequenceExpression(items) {
+    const node = this.createNode("SequenceExpression");
+    node.expressions = items;
+    return node;
+  }
+  createParenthesizedExpression(expression) {
+    const node = this.createNode("ParenthesizedExpression");
+    node.expression = expression;
+    return node;
+  }
+  createVariableDeclaration(kind, items, stack2) {
+    const node = this.createNode(stack2, "VariableDeclaration");
+    node.kind = kind;
+    node.declarations = items;
+    return node;
+  }
+  createVariableDeclarator(id, init, stack2) {
+    const node = this.createNode(stack2, "VariableDeclarator");
+    node.id = id;
+    node.init = init;
+    return node;
+  }
+  createLiteral(value, raw, stack2) {
+    const node = this.createNode(stack2, "Literal");
+    node.value = value;
+    if (raw === void 0) {
+      if (typeof value === "string") {
+        node.raw = `"${value}"`;
+      } else {
+        node.raw = String(value);
+      }
+    } else {
+      node.raw = String(value);
+    }
+    return node;
+  }
+  createClassDeclaration() {
+    const node = this.createNode("ClassDeclaration");
+    node.body = this.createBlockStatement();
+    return node;
+  }
+  createChunkExpression(value, newLine = true, semicolon = false) {
+    const node = this.createNode("ChunkExpression");
+    node.newLine = newLine;
+    node.semicolon = semicolon;
+    node.value = value;
+    node.raw = value;
+    return node;
+  }
+  createThisExpression(stack2) {
+    return this.createNode(stack2, "ThisExpression");
+  }
+  createSuperExpression(value, stack2) {
+    const node = this.createNode(stack2, "SuperExpression");
+    node.value = value;
+    return node;
+  }
+  createImportDeclaration(source, specifiers, stack2) {
+    const node = this.createNode(stack2, "ImportDeclaration");
+    node.source = this.createLiteral(source);
+    node.specifiers = specifiers;
+    return node;
+  }
+  createImportSpecifier(local, imported = null, hasAs = false) {
+    if (!local) return null;
+    if (imported && !hasAs) {
+      const node = this.createNode("ImportSpecifier");
+      node.imported = this.createIdentifier(imported);
+      node.local = this.createIdentifier(local);
+      return node;
+    } else if (hasAs) {
+      const node = this.createNode("ImportNamespaceSpecifier");
+      node.local = this.createIdentifier(local);
+      return node;
+    } else {
+      const node = this.createNode("ImportDefaultSpecifier");
+      node.local = this.createIdentifier(local);
+      return node;
+    }
+  }
+  createExportAllDeclaration(source, exported, stack2) {
+    const node = this.createNode(stack2, "ExportAllDeclaration");
+    if (exported === "*") exported = null;
+    node.exported = exported ? this.createIdentifier(exported) : null;
+    if (!Node_default.is(source)) {
+      node.source = this.createLiteral(source);
+    } else {
+      node.source = source;
+    }
+    return node;
+  }
+  createExportDefaultDeclaration(declaration, stack2) {
+    const node = this.createNode(stack2, "ExportDefaultDeclaration");
+    if (!Node_default.is(declaration)) {
+      declaration = this.createIdentifier(declaration);
+    }
+    node.declaration = declaration;
+    return node;
+  }
+  createExportNamedDeclaration(declaration, source = null, specifiers = [], stack2 = null) {
+    const node = this.createNode(stack2, "ExportNamedDeclaration");
+    if (declaration) {
+      node.declaration = declaration;
+    } else {
+      if (source) {
+        if (!Node_default.is(source)) {
+          node.source = this.createLiteral(source);
+        } else {
+          node.source = source;
+        }
+      }
+      if (specifiers.length > 0) {
+        node.specifiers = specifiers;
+      } else {
+        throw new Error(`ExportNamedDeclaration arguments 'declaration' or 'source' must have one`);
+      }
+    }
+    return node;
+  }
+  createExportSpecifier(local, exported = null, stack2 = null) {
+    const node = this.createNode(stack2, "ExportSpecifier");
+    if (!Node_default.is(exported || local)) {
+      node.exported = this.createIdentifier(exported || local);
+    } else {
+      node.exported = exported || local;
+    }
+    if (!Node_default.is(local)) {
+      node.local = this.createIdentifier(local);
+    } else {
+      node.local = local;
+    }
+    return node;
+  }
+};
+var Token_default = Token;
 
 // lib/tokens/index.js
 var tokens_exports = {};
@@ -480,29 +462,71 @@ function AnnotationDeclaration_default() {
 }
 
 // lib/core/Common.js
+var import_fs = __toESM(require("fs"));
 var import_Utils = __toESM(require("easescript/lib/core/Utils"));
 
 // lib/core/Cache.js
-var records = /* @__PURE__ */ new Map();
-function set(key, name, value) {
-  let dataset = records.get(key);
-  if (!dataset) {
-    records.set(key, dataset = /* @__PURE__ */ new Map());
+function createCache() {
+  const records3 = /* @__PURE__ */ new Map();
+  function set(key, name, value) {
+    let dataset = records3.get(key);
+    if (!dataset) {
+      records3.set(key, dataset = /* @__PURE__ */ new Map());
+    }
+    dataset.set(name, value);
+    return value;
   }
-  dataset.set(name, value);
-  return value;
+  function get(key, name) {
+    let dataset = records3.get(key);
+    return dataset ? dataset.get(name) : null;
+  }
+  function has(key, name) {
+    let dataset = records3.get(key);
+    return dataset ? dataset.has(name) : false;
+  }
+  function del(key, name) {
+    let dataset = records3.get(key);
+    if (dataset) {
+      dataset.delete(name);
+      return true;
+    }
+    return false;
+  }
+  function clear(key) {
+    let dataset = records3.get(key);
+    if (dataset) {
+      dataset.clear(key);
+      return true;
+    }
+    return false;
+  }
+  function clearAll() {
+    records3.clear();
+  }
+  return {
+    set,
+    get,
+    has,
+    del,
+    clear,
+    clearAll
+  };
 }
-function get(key, name) {
-  let dataset = records.get(key);
-  return dataset ? dataset.get(name) : null;
-}
-function has(key, name) {
-  let dataset = records.get(key);
-  return dataset ? dataset.has(name) : false;
+var records = /* @__PURE__ */ new Map();
+function getCacheManager(scope = null) {
+  if (scope) {
+    let exists = records.get(scope);
+    if (!exists) {
+      records.set(scope, exists = createCache());
+    }
+    return exists;
+  }
+  return createCache();
 }
 
 // lib/core/Common.js
 var import_Namespace = __toESM(require("easescript/lib/core/Namespace"));
+var Cache = getCacheManager("common");
 var emptyObject = {};
 var emptyArray = [];
 var annotationIndexers = {
@@ -811,8 +835,8 @@ function parseAliasAnnotation(annotation, pluginVersion, optionVersions = {}) {
 }
 function getModuleAnnotations(module2, allows = [], inheritFlag = true) {
   if (!import_Utils.default.isModule(module2) || !allows.length) return emptyArray;
-  let key = `Common.getModuleAnnotations:${String(inheritFlag)}:${allows.join("-")}`;
-  let old = get(module2, key);
+  let key = `getModuleAnnotations:${String(inheritFlag)}:${allows.join("-")}`;
+  let old = Cache.get(module2, key);
   if (old) return old;
   let result = [];
   module2.getAnnotations((annotation) => {
@@ -820,21 +844,21 @@ function getModuleAnnotations(module2, allows = [], inheritFlag = true) {
       result.push(annotation);
     }
   }, inheritFlag);
-  set(module2, key, result);
+  Cache.set(module2, key, result);
   return result;
 }
 function getMethodAnnotations(methodStack, allows = [], inheritFlag = true) {
   if (!import_Utils.default.isStack(methodStack) || !(methodStack.isMethodDefinition || methodStack.isPropertyDefinition)) return emptyArray;
   let result = [];
-  let key = `Common.getMethodAnnotations:${String(inheritFlag)}:${allows.join("-")}`;
-  let old = get(methodStack, key);
+  let key = `getMethodAnnotations:${String(inheritFlag)}:${allows.join("-")}`;
+  let old = Cache.get(methodStack, key);
   if (old) return old;
   methodStack.findAnnotation(methodStack, (annotation) => {
     if (allows.includes(annotation.getLowerCaseName())) {
       result.push(annotation);
     }
   }, inheritFlag);
-  set(methodStack, key, result);
+  Cache.set(methodStack, key, result);
   return result;
 }
 function getAnnotationArgument(name, args, indexes = null) {
@@ -1089,32 +1113,38 @@ function parseImportDeclaration(ctx2, stack2, context = null, graph = null) {
     let compilation = stack2.getResolveCompilation();
     let source = stack2.getResolveFile() || stack2.source.value();
     let specifiers = null;
+    let ownerModule = null;
     if (compilation && !compilation.isDescriptorDocument()) {
       source = ctx2.getModuleImportSource(source, stack2.compilation.file);
       specifiers = createFormatImportSpecifiers(stack2);
       ctx2.addFragment(compilation);
     } else {
-      let external = isExternalDependency(ctx2.options.dependences.externals, source, context);
+      if (stack2.additional && stack2.additional.isDeclaratorDeclaration) {
+        ownerModule = stack2.additional.module;
+      }
+      let isLocal = import_fs.default.existsSync(source);
       specifiers = createFormatImportSpecifiers(stack2);
-      if (!external) {
-        source = ctx2.getImportAssetsMapping(source, {
-          group: "imports",
-          source,
-          specifiers,
-          ctx: ctx2,
-          context
-        });
-        if (source) {
-          let asset = ctx2.createAsset(source);
-          source = ctx2.getAssetsImportSource(asset, stack2.compilation);
-          graph.addAsset(asset);
-        }
+      source = ctx2.getImportAssetsMapping(source, {
+        group: "imports",
+        source,
+        specifiers,
+        ctx: ctx2,
+        context
+      });
+      if (isLocal && source) {
+        let asset = ctx2.createAsset(source);
+        source = ctx2.getAssetsImportSource(asset, stack2.compilation);
+        graph.addAsset(asset);
       }
     }
     if (source) {
       if (specifiers.length > 0) {
         specifiers.forEach((spec) => {
-          importSource = ctx2.addImport(source, spec.local, spec.imported, spec.stack);
+          let local = spec.local;
+          if (ownerModule && spec.local === ownerModule.id) {
+            local = ctx2.getModuleReferenceName(ownerModule, context);
+          }
+          importSource = ctx2.addImport(source, local, spec.imported, spec.stack);
         });
       } else {
         importSource = ctx2.addImport(source, null, null, stack2.source);
@@ -1431,12 +1461,12 @@ function createReadfileAnnotationNode(ctx2, stack2) {
     const filepath2 = result.relative ? ctx2.compiler.getRelativeWorkspacePath(file) : file;
     let item = {
       path: filepath2,
-      isFile: fs.statSync(file).isFile()
+      isFile: import_fs.default.statSync(file).isFile()
     };
     if (item.isFile && result.load) {
       let data = "";
       if (file.endsWith(".env")) {
-        const content = dotenv.parse(fs.readFileSync(file));
+        const content = dotenv.parse(import_fs.default.readFileSync(file));
         dotenvExpand.expand({ parsed: content });
         data = JSON.stringify(content);
       } else {
@@ -1450,7 +1480,7 @@ function createReadfileAnnotationNode(ctx2, stack2) {
       }
       item.content = data;
     } else if (result.source) {
-      item.content = JSON.stringify(fs.readFileSync(file));
+      item.content = JSON.stringify(import_fs.default.readFileSync(file));
     }
     const parent = getParentFile(pid);
     if (parent) {
@@ -1850,8 +1880,8 @@ function isExternalDependency(externals, source, module2 = null) {
   return false;
 }
 function getMethodOrPropertyAlias(ctx2, stack2, name = null) {
-  if (has(stack2, "Common.getMethodOrPropertyAlias")) {
-    return get(stack2, "Common.getMethodOrPropertyAlias");
+  if (Cache.has(stack2, "getMethodOrPropertyAlias")) {
+    return Cache.get(stack2, "getMethodOrPropertyAlias");
   }
   let result = getMethodAnnotations(stack2, ["alias"]);
   let resolevName = name;
@@ -1862,13 +1892,13 @@ function getMethodOrPropertyAlias(ctx2, stack2, name = null) {
       resolevName = value;
     }
   }
-  set(stack2, "Common.getMethodOrPropertyAlias", resolevName);
+  Cache.set(stack2, "getMethodOrPropertyAlias", resolevName);
   return resolevName;
 }
 function getMethodOrPropertyHook(ctx2, stack2) {
   if (!stack2) return null;
-  if (has(stack2, "Common.getMethodOrPropertyHook")) {
-    return get(stack2, "Common.getMethodOrPropertyHook");
+  if (Cache.has(stack2, "getMethodOrPropertyHook")) {
+    return Cache.get(stack2, "getMethodOrPropertyHook");
   }
   let result = getMethodAnnotations(stack2, ["hook"]);
   let invoke = null;
@@ -1882,7 +1912,7 @@ function getMethodOrPropertyHook(ctx2, stack2) {
       ];
     }
   }
-  set(stack2, "Common.getMethodOrPropertyHook", invoke);
+  Cache.set(stack2, "getMethodOrPropertyHook", invoke);
   return invoke;
 }
 function createJSXAttrHookNode(ctx2, stack2, desc2) {
@@ -3194,12 +3224,12 @@ var import_Utils6 = __toESM(require("easescript/lib/core/Utils"));
 function Identifier_default(ctx2, stack2) {
   const desc2 = stack2.parentStack && stack2.parentStack.isImportSpecifier ? null : stack2.descriptor();
   const module2 = stack2.module;
-  if (desc2 && desc2.isStack && desc2.imports) {
-    const isDecl = desc2.isDeclaratorVariable || desc2.isDeclaratorFunction;
-    if (isDecl && Array.isArray(desc2.imports)) {
-      desc2.imports.forEach((item) => {
+  if (import_Utils6.default.isStack(desc2) && (desc2.isDeclaratorVariable || desc2.isDeclaratorFunction)) {
+    let imports = desc2.imports;
+    if (Array.isArray(imports)) {
+      imports.forEach((item) => {
         if (item.source.isLiteral) {
-          ctx2.createToken(item);
+          parseImportDeclaration(ctx2, item, module2);
         }
       });
     }
@@ -3251,7 +3281,8 @@ function IfStatement_default(ctx2, stack2) {
 
 // lib/tokens/ImportDeclaration.js
 function ImportDeclaration_default(ctx2, stack2) {
-  parseImportDeclaration(ctx2, stack2);
+  let module2 = stack2.additional ? stack2.additional.module : null;
+  parseImportDeclaration(ctx2, stack2, module2);
   return null;
 }
 
@@ -3433,11 +3464,11 @@ function JSXAttribute_default(ctx2, stack2) {
   }
   if (ns === "@binding" && stack2.value) {
     const desc2 = stack2.value.description();
-    let has2 = false;
+    let has = false;
     if (desc2) {
-      has2 = (desc2.isPropertyDefinition || desc2.isTypeObjectPropertyDefinition) && !desc2.isReadonly || desc2.isMethodGetterDefinition && desc2.module && desc2.module.getMember(desc2.key.value(), "set");
+      has = (desc2.isPropertyDefinition || desc2.isTypeObjectPropertyDefinition) && !desc2.isReadonly || desc2.isMethodGetterDefinition && desc2.module && desc2.module.getMember(desc2.key.value(), "set");
     }
-    if (!has2 && stack2.value.isJSXExpressionContainer) {
+    if (!has && stack2.value.isJSXExpressionContainer) {
       let expression = stack2.value.expression;
       if (expression) {
         if (expression.isTypeAssertExpression) {
@@ -3445,11 +3476,11 @@ function JSXAttribute_default(ctx2, stack2) {
         }
         if (expression.isMemberExpression) {
           const objectType = import_Namespace4.default.globals.get("Object");
-          has2 = objectType && objectType.is(expression.object.type());
+          has = objectType && objectType.is(expression.object.type());
         }
       }
     }
-    if (!has2) {
+    if (!has) {
       stack2.value.error(1e4, stack2.value.raw());
     }
   }
@@ -3485,7 +3516,6 @@ function JSXClosingFragment_default(ctx2, stack2) {
 // lib/core/ESX.js
 var import_Namespace5 = __toESM(require("easescript/lib/core/Namespace"));
 var import_Utils7 = require("easescript/lib/core/Utils");
-init_Node();
 function createFragmentVNode(ctx2, children, props = null) {
   const items = [
     ctx2.getVNodeApi("Fragment"),
@@ -4066,11 +4096,11 @@ function mergeElementPropsNode(ctx2, data, stack2) {
   if (props && stack2 && stack2.isComponent) {
     const desc2 = stack2.description();
     if (desc2 && (0, import_Utils7.isModule)(desc2)) {
-      let has2 = getModuleAnnotations(desc2, ["hook"]).some((annot) => {
+      let has = getModuleAnnotations(desc2, ["hook"]).some((annot) => {
         let result = parseHookAnnotation(annot, ctx2.plugin.version, ctx2.options.metadata.versions);
         return result && result.type === "polyfills:props";
       });
-      if (has2) {
+      if (has) {
         return createComponentPropsHookNode(ctx2, props, ctx2.createLiteral(desc2.getName()));
       }
     }
@@ -4453,7 +4483,7 @@ function createCustomDirectiveProperties(ctx2, stack2, data, callback = null) {
 }
 function createResolveComponentDirective(ctx2, stack2, data, callback = null) {
   const props = [];
-  const has2 = (items, name) => items && items.some((prop) => prop.key.value === name);
+  const has = (items, name) => items && items.some((prop) => prop.key.value === name);
   stack2.openingElement.attributes.forEach((attr) => {
     if (attr.isAttributeXmlns || attr.isAttributeDirective) return;
     const name = attr.name.value();
@@ -4462,12 +4492,12 @@ function createResolveComponentDirective(ctx2, stack2, data, callback = null) {
       attr.value ? ctx2.createToken(attr.value) : ctx2.createLiteral(true)
     );
     if (attr.isMemberProperty) {
-      if (!has2(data.props, name)) {
+      if (!has(data.props, name)) {
         property.isInheritDirectiveProp = true;
         data.props.push(property);
       }
     } else {
-      if (!has2(data.attrs, name)) {
+      if (!has(data.attrs, name)) {
         property.isInheritDirectiveAttr = true;
         data.attrs.push(property);
       }
@@ -4863,13 +4893,13 @@ function LogicalExpression_default(ctx2, stack2) {
 
 // lib/tokens/MemberExpression.js
 var import_Utils8 = __toESM(require("easescript/lib/core/Utils"));
-function addImportReference(ctx2, desc2) {
-  if (desc2 && desc2.isStack && desc2.imports) {
-    const isDecl = desc2.isDeclaratorVariable || desc2.isDeclaratorFunction;
-    if (isDecl && Array.isArray(desc2.imports)) {
-      desc2.imports.forEach((item) => {
+function addImportReference(ctx2, desc2, module2) {
+  if (import_Utils8.default.isStack(desc2) && (desc2.isDeclaratorVariable || desc2.isDeclaratorFunction)) {
+    let imports = desc2.imports;
+    if (Array.isArray(imports)) {
+      imports.forEach((item) => {
         if (item.source.isLiteral) {
-          ctx2.createToken(item);
+          parseImportDeclaration(ctx2, item, module2);
         }
       });
     }
@@ -4890,8 +4920,8 @@ function MemberExpression(ctx2, stack2) {
     if (import_Utils8.default.isTypeModule(objectDescriptor)) {
       ctx2.addDepend(objectDescriptor, stack2.module);
     } else {
-      addImportReference(ctx2, objectDescriptor);
-      addImportReference(ctx2, description);
+      addImportReference(ctx2, objectDescriptor, module2 || stack2.compilation);
+      addImportReference(ctx2, description, module2 || stack2.compilation);
     }
   }
   if (!description || import_Utils8.default.isType(description) && description.isAnyType && !stack2.optional) {
@@ -5212,7 +5242,7 @@ function StructTableColumnDefinition_default(ctx2, stack2) {
 
 // lib/core/TableBuilder.js
 var import_path = __toESM(require("path"));
-var import_fs = __toESM(require("fs"));
+var import_fs2 = __toESM(require("fs"));
 
 // lib/core/Generator.js
 var import_source_map = __toESM(require("source-map"));
@@ -5937,8 +5967,8 @@ var Generator2 = class {
         const expressions = token.expressions;
         this.withString("`");
         token.quasis.map((item, index) => {
-          const has3 = item.value;
-          if (has3) {
+          const has2 = item.value;
+          if (has2) {
             this.make(item);
           }
           if (index < expressions.length) {
@@ -6167,16 +6197,16 @@ var Generator2 = class {
         break;
       case "JSXElement":
         this.addMapping(token);
-        let has2 = token.children.length > 0;
+        let has = token.children.length > 0;
         this.make(token.openingElement);
-        if (has2) this.newLine();
+        if (has) this.newLine();
         this.newBlock();
         token.children.forEach((child, index) => {
           if (index > 0) this.newLine();
           this.make(child);
         });
         this.endBlock();
-        if (has2) this.newLine();
+        if (has) this.newLine();
         this.make(token.closingElement);
         this.newLine();
         break;
@@ -6295,8 +6325,8 @@ var TableBuilder = class {
     let file = this.type + ".sql";
     let code = this.getTables().join("\n");
     file = this.outfile || (this.outfile = ctx2.getOutputAbsolutePath(file));
-    import_fs.default.mkdirSync(import_path.default.dirname(file), { recursive: true });
-    import_fs.default.writeFileSync(file, code);
+    import_fs2.default.mkdirSync(import_path.default.dirname(file), { recursive: true });
+    import_fs2.default.writeFileSync(file, code);
   }
 };
 var records2 = /* @__PURE__ */ new Map();
@@ -6764,7 +6794,6 @@ var ImportSource = class {
 };
 
 // lib/core/ExportSource.js
-init_Node();
 function getExportType(exported, local) {
   let type = local && typeof local === "string" ? "specifier" : "named";
   if (exported === "default") type = "default";
@@ -6876,6 +6905,1244 @@ var ExportSource = class {
   }
 };
 
+// lib/core/VirtualModule.js
+var import_Namespace7 = __toESM(require("easescript/lib/core/Namespace"));
+var VirtualModule = class {
+  #id = "";
+  #ns = [];
+  #file = null;
+  #content = "";
+  #ext = ".virtual";
+  #exports = [];
+  #imports = [];
+  #changed = true;
+  #references = /* @__PURE__ */ new Map();
+  constructor(id, ns) {
+    this.#id = id;
+    this.#ns = Array.isArray(ns) ? ns : String(ns).split(".");
+  }
+  get ns() {
+    return this.#ns;
+  }
+  get id() {
+    return this.#id;
+  }
+  get bindModule() {
+    return import_Namespace7.default.globals.get(this.getName());
+  }
+  get file() {
+    return this.#file || this.getName("/") + this.#ext;
+  }
+  set file(value) {
+    this.#file = value;
+  }
+  get ext() {
+    return this.#ext;
+  }
+  set ext(value) {
+    this.#ext = value;
+  }
+  get imports() {
+    return this.#imports;
+  }
+  get exports() {
+    return this.#exports;
+  }
+  get changed() {
+    return this.#changed;
+  }
+  set changed(value) {
+    this.#changed = value;
+  }
+  addExport(exported, local = null, importSource = null, stack2 = null) {
+    let has = this.#exports.some((item) => item[0] === exported);
+    if (!has) {
+      this.#exports.push([exported, local, importSource, stack2]);
+    }
+  }
+  addImport(source, local = null, imported = null) {
+    let has = this.#imports.some((item) => item[0] === source && item[1] === local);
+    if (!has) {
+      this.#imports.push([source, local, imported]);
+    }
+  }
+  addReference(className, local = null) {
+    local = local || String(className).split(".").pop();
+    this.#references.set(className, local);
+  }
+  getReferences() {
+    return this.#references;
+  }
+  getName(seg = ".") {
+    return this.#ns.concat(this.#id).join(seg);
+  }
+  getSourcemap() {
+    return null;
+  }
+  getContent() {
+    return this.#content;
+  }
+  setContent(content) {
+    this.#content = content;
+    this.#changed = true;
+  }
+  createImports(ctx2) {
+    this.#imports.forEach((args) => {
+      ctx2.addImport(...args);
+    });
+  }
+  createExports(ctx2) {
+    let exportName = this.id;
+    this.#exports.forEach(([exported, local, importSource, stack2]) => {
+      if (exported === "default") {
+        if (typeof local === "string") {
+          exportName = local;
+        } else if (local.type === "Identifier") {
+          exportName = local.value;
+        }
+      }
+      if (typeof local === "string") {
+        local = ctx2.createIdentifier(local);
+      }
+      ctx2.addExport(exported, local, importSource, stack2);
+    });
+    return exportName;
+  }
+  createReferences(ctx2, graph) {
+    this.getReferences().forEach((local, classname) => {
+      let module2 = import_Namespace7.default.globals.get(classname);
+      if (module2) {
+        let dep = null;
+        if (module2.isDeclaratorModule) {
+          dep = ctx2.getVModule(module2.getName());
+        } else {
+          dep = module2;
+        }
+        if (dep) {
+          let importSource = ctx2.addImport(
+            ctx2.getModuleImportSource(dep, this),
+            local
+          );
+          importSource.setSourceTarget(dep);
+          importSource.setSourceContext(this);
+          graph.addImport(importSource);
+          graph.addDepend(dep);
+        }
+      }
+    });
+  }
+  gen(ctx2, body = []) {
+    let imports = [];
+    let exports2 = [];
+    let exportNodes = null;
+    let importNodes = null;
+    if (ctx2.options.module === "cjs") {
+      importNodes = createCJSImports(ctx2, ctx2.imports);
+      exportNodes = createCJSExports(ctx2, ctx2.exports);
+    } else {
+      importNodes = createESMImports(ctx2, ctx2.imports);
+      exportNodes = createESMExports(ctx2, ctx2.exports);
+    }
+    imports.push(...importNodes, ...exportNodes.imports);
+    body.push(...exportNodes.declares);
+    exports2.push(...exportNodes.exports);
+    const generator = new Generator_default(ctx2, false);
+    const layout = [
+      ...imports,
+      ctx2.createChunkExpression(this.getContent()),
+      ...body,
+      ...exports2
+    ];
+    layout.forEach((item) => generator.make(item));
+    return generator;
+  }
+  async build(ctx2) {
+    const graph = ctx2.getBuildGraph(this.bindModule || this);
+    if (!this.#changed && graph.code) return graph;
+    this.#changed = false;
+    this.createImports(ctx2);
+    this.createReferences(ctx2, graph);
+    let body = [];
+    let exportName = this.createExports(ctx2);
+    if (this.id === "Class" && this.#ns.length === 0) {
+      let properties = Object.keys(Constant_exports).map((key) => {
+        if (key === "PRIVATE_NAME") return;
+        return ctx2.createProperty(
+          ctx2.createIdentifier(key),
+          ctx2.createLiteral(Constant_exports[key])
+        );
+      }).filter(Boolean);
+      properties.sort((a, b) => {
+        return a.init.value - b.init.value;
+      });
+      body.push(
+        ctx2.createExpressionStatement(
+          ctx2.createAssignmentExpression(
+            ctx2.createMemberExpression([
+              ctx2.createIdentifier("Class"),
+              ctx2.createIdentifier("constant")
+            ]),
+            ctx2.createObjectExpression(properties)
+          )
+        )
+      );
+    } else {
+      body.push(
+        this.createClassDescriptors(ctx2, exportName, this.id)
+      );
+    }
+    ctx2.createAllDependencies();
+    graph.code = this.gen(ctx2, body).code;
+    graph.sourcemap = this.getSourcemap();
+    if (ctx2.options.emitFile) {
+      graph.outfile = ctx2.getOutputAbsolutePath(this);
+    }
+    return graph;
+  }
+  createClassDescriptors(ctx2, exportName, className) {
+    return ctx2.createCallExpression(
+      createStaticReferenceNode(ctx2, null, "Class", "creator"),
+      [
+        ctx2.createIdentifier(exportName),
+        ctx2.createObjectExpression([
+          ctx2.createProperty(
+            ctx2.createIdentifier("m"),
+            ctx2.createLiteral(KIND_CLASS | MODIFIER_PUBLIC)
+          ),
+          ctx2.createProperty(
+            ctx2.createIdentifier("name"),
+            ctx2.createLiteral(className)
+          )
+        ])
+      ]
+    );
+  }
+};
+function isVModule(value) {
+  return value ? value instanceof VirtualModule : false;
+}
+function getVirtualModuleManager(VirtualModuleFactory) {
+  const virtualization = /* @__PURE__ */ new Map();
+  function createVModule(sourceId, factory = VirtualModuleFactory) {
+    sourceId = Array.isArray(sourceId) ? sourceId.join(".") : String(sourceId);
+    let old = virtualization.get(sourceId);
+    if (old) return old;
+    let segs = sourceId.split(".");
+    let vm = new factory(segs.pop(), segs);
+    virtualization.set(sourceId, vm);
+    return vm;
+  }
+  function getVModule(sourceId) {
+    return virtualization.get(sourceId);
+  }
+  function hasVModule(sourceId) {
+    return virtualization.has(sourceId);
+  }
+  function getVModules() {
+    return Array.from(virtualization.values());
+  }
+  function setVModule(sourceId, vm) {
+    return virtualization.set(sourceId, vm);
+  }
+  return {
+    createVModule,
+    isVModule,
+    hasVModule,
+    setVModule,
+    getVModules,
+    getVModule
+  };
+}
+
+// lib/core/Context.js
+var import_Utils15 = __toESM(require("easescript/lib/core/Utils"));
+var import_Range = __toESM(require("easescript/lib/core/Range"));
+var import_crypto2 = require("crypto");
+var Context = class _Context extends Token_default {
+  static is(value) {
+    return value ? value instanceof _Context : false;
+  }
+  #createToken = null;
+  #tokens = null;
+  #target = null;
+  #dependencies = /* @__PURE__ */ new Map();
+  #plugin = null;
+  #nodes = /* @__PURE__ */ new Map();
+  #imports = new ImportManage();
+  #exports = new ExportManage();
+  #afterBody = [];
+  #beforeBody = [];
+  #fragments = null;
+  #variables = null;
+  #graphs = null;
+  #assets = null;
+  #virtuals = null;
+  #glob = null;
+  #cache = null;
+  constructor(compiOrVModule, plugin2, variables, graphs, assets, virtuals, glob, cache) {
+    super();
+    this.#plugin = plugin2;
+    this.#target = compiOrVModule;
+    this.#variables = variables;
+    this.#graphs = graphs;
+    this.#assets = assets;
+    this.#virtuals = virtuals;
+    this.#glob = glob;
+    this.#cache = cache;
+    const _createToken = this.options.transform.createToken;
+    const _tokens = this.options.transform.tokens;
+    if (_tokens && typeof _tokens === "object" && Object.keys(_tokens).length > 0) {
+      this.#tokens = (type) => {
+        if (Object.prototype.hasOwnProperty.call(_tokens, type)) {
+          return _tokens[type];
+        }
+        return tokens_exports[type];
+      };
+    } else {
+      this.#tokens = (type) => {
+        return tokens_exports[type];
+      };
+    }
+    if (_createToken && typeof _createToken === "function") {
+      this.#createToken = (token, stack2, type) => {
+        try {
+          return _createToken(this, token, stack2, type);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+    } else {
+      this.#createToken = (token, stack2, type) => {
+        if (!token) {
+          throw new Error(`Token '${type}' is not exists.`);
+        }
+        try {
+          return token(this, stack2, type);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+    }
+  }
+  get plugin() {
+    return this.#plugin;
+  }
+  get compiler() {
+    return this.#plugin.complier;
+  }
+  get target() {
+    return this.#target;
+  }
+  get options() {
+    return this.#plugin.options;
+  }
+  get imports() {
+    return this.#imports;
+  }
+  get exports() {
+    return this.#exports;
+  }
+  get afterBody() {
+    return this.#afterBody;
+  }
+  get beforeBody() {
+    return this.#beforeBody;
+  }
+  get variables() {
+    return this.#variables;
+  }
+  get graphs() {
+    return this.#graphs;
+  }
+  get assets() {
+    return this.#assets;
+  }
+  get virtuals() {
+    return this.#virtuals;
+  }
+  get cache() {
+    return this.#cache;
+  }
+  createAsset(source) {
+    return this.assets.createAsset(source);
+  }
+  createStyleAsset(source, index) {
+    return this.assets.createStyleAsset(source, index);
+  }
+  getVModule(sourceId) {
+    return this.virtuals.getVModule(sourceId);
+  }
+  hasVModule(sourceId) {
+    return this.virtuals.hasVModule(sourceId);
+  }
+  isVModule(module2) {
+    if (module2) {
+      if (module2.isDeclaratorModule) {
+        return this.hasVModule(module2.getName());
+      } else if (this.virtuals.isVModule(module2)) {
+        return module2;
+      }
+    }
+    return false;
+  }
+  createToken(stack2) {
+    if (!stack2) return null;
+    const type = stack2.toString();
+    if (type === "TypeStatement") return null;
+    if (type === "NewDefinition") return null;
+    if (type === "CallDefinition") return null;
+    if (type === "TypeDefinition") return null;
+    if (type === "TypeGenericDefinition") return null;
+    if (type === "DeclaratorDeclaration") return null;
+    const token = this.#tokens(type);
+    return this.#createToken(token, stack2, type);
+  }
+  addNodeToAfterBody(node) {
+    if (node) {
+      let afterBody = this.#afterBody || (this.#afterBody = []);
+      afterBody.push(node);
+    }
+    return node;
+  }
+  addNodeToBeforeBody(node) {
+    if (node) {
+      let beforeBody = this.#beforeBody || (this.#beforeBody = []);
+      beforeBody.push(node);
+    }
+    return node;
+  }
+  addImport(source, local = null, imported = null, stack2 = null) {
+    return this.#imports.createImportSource(source, local, imported, stack2);
+  }
+  getImport(source, isNamespace = false) {
+    return this.#imports.getImportSource(source, isNamespace);
+  }
+  hasImport(source, local = null, isNamespace = false) {
+    return this.#imports.hasImportSource(source, local, isNamespace);
+  }
+  addExport(exported, local = null, importSource = null, stack2 = null) {
+    return this.#exports.createExportSource(exported, local, importSource, stack2);
+  }
+  hasExport(exported) {
+    return this.#exports.hasExportSource(exported);
+  }
+  addFragment(compilation) {
+    let fragments = this.#fragments || (this.#fragments = /* @__PURE__ */ new Set());
+    fragments.add(compilation);
+  }
+  getFragments() {
+    return this.#fragments;
+  }
+  addDepend(dep, context = null) {
+    context = context || this.target;
+    let deps = this.#dependencies.get(context);
+    if (!deps) {
+      this.#dependencies.set(context, deps = /* @__PURE__ */ new Set());
+    }
+    deps.add(dep);
+  }
+  getDependencies(context = null) {
+    context = context || this.target;
+    return this.#dependencies.get(context);
+  }
+  getAllDependencies() {
+    const deps = /* @__PURE__ */ new Set();
+    this.#dependencies.forEach((dataset) => {
+      dataset.forEach((dep) => deps.add(dep));
+    });
+    return deps;
+  }
+  isUsed(module2, context = null) {
+    if (!module2) return false;
+    context = context || this.target;
+    let deps = this.#dependencies.get(context);
+    if (deps && deps.has(module2)) {
+      return true;
+    }
+    if (this.isVModule(module2)) return true;
+    return module2.compilation === this.target;
+  }
+  isActiveModule(depModule, context = null) {
+    if (!depModule) return false;
+    context = context || this.target;
+    if (!this.isUsed(depModule, context)) return false;
+    if (depModule.isDeclaratorModule) {
+      if (this.hasVModule(depModule.getName())) {
+        return true;
+      }
+      if (this.isDeclaratorModuleDependency(depModule)) {
+        return true;
+      }
+      return false;
+    } else {
+      if (isVModule(depModule)) return true;
+      if (context) {
+        return !import_Utils15.default.checkDepend(context, depModule);
+      }
+      return true;
+    }
+  }
+  isNeedBuild(module2) {
+    if (!module2) return false;
+    if (isVModule(module2)) return true;
+    if (this.cache.has(module2, "isNeedBuild")) {
+      return this.cache.has(module2, "isNeedBuild");
+    }
+    let result = this.compiler.isPluginInContext(this.plugin, module2);
+    if (result) {
+      const annots = getModuleAnnotations(module2, ["runtime", "syntax"]);
+      if (annots.length > 0) {
+        result = annots.every((annot) => {
+          const data = parseMacroAnnotation(annot);
+          if (!data) {
+            throw new Error("Annotations parse data exception.");
+          }
+          const name = annot.getLowerCaseName();
+          switch (name) {
+            case "runtime":
+              return isRuntime(data.value, this.options.metadata || {}) === data.expect;
+            case "syntax":
+              return isSyntax(data.value, this.plugin.version) === data.expect;
+          }
+          return false;
+        });
+      }
+    }
+    this.cache.has(module2, "isNeedBuild", result);
+    return result;
+  }
+  hasDeclareModule(module2) {
+    if (import_Utils15.default.isCompilation(this.target)) {
+      if (this.target.modules.has(module2.getName())) {
+        return true;
+      }
+      return this.target.importModuleNameds.has(module2);
+    }
+    return false;
+  }
+  setNode(stack2, node) {
+    this.#nodes.set(stack2, node);
+  }
+  getNode(stack2) {
+    return this.#nodes.get(stack2);
+  }
+  removeNode(stack2) {
+    this.#nodes.delete(stack2);
+  }
+  getModuleReferenceName(module2, context = null) {
+    let name = null;
+    if (isVModule(module2)) {
+      name = module2.getName("_");
+    } else {
+      if (!import_Utils15.default.isModule(module2)) return null;
+      if (!context) context = this.target;
+      if (import_Utils15.default.isModule(context)) {
+        if (context.isDeclaratorModule) {
+          const vm = this.getVModule(context.getName());
+          if (vm) {
+            const references = vm.getReferences();
+            if (references) {
+              const className = module2.getName();
+              if (references.has(className)) {
+                name = references.get(className);
+              }
+            }
+          }
+        }
+        if (!name) {
+          name = context.getReferenceNameByModule(module2);
+        }
+      } else if (import_Utils15.default.isCompilation(context)) {
+        name = context.getReferenceName(module2);
+      }
+      if (this.hasDeclareModule(module2)) {
+        return name;
+      }
+      if (!name) {
+        name = module2.getName("_");
+      }
+    }
+    return this.getGlobalRefName(null, name);
+  }
+  isDeclaratorModuleDependency(module2) {
+    if (!import_Utils15.default.isClassType(module2)) return false;
+    if (module2.required && module2.isAnnotationCreated) {
+      return true;
+    } else if (module2.isDeclaratorModule) {
+      return module2.getImportDeclarations().some((item) => {
+        if (item.isImportDeclaration && item.source.isLiteral) {
+          return item.specifiers.some((spec) => spec.value() === module2.id);
+        }
+        return false;
+      });
+    }
+    return false;
+  }
+  isES6ClassModule(module2) {
+    const annots = getModuleAnnotations(module2, ["define"], false);
+    return annots.some((annot) => {
+      const data = parseDefineAnnotation(annot);
+      return data.es6class;
+    });
+  }
+  isLoadAssetsRawCode(stack2, resolveFile) {
+    if (!stack2 || !resolveFile) return false;
+    if (!stack2.isAnnotationDeclaration) return false;
+    if (stack2.getLowerCaseName() !== "embed") return false;
+    if (/\.[m|c]?js$/i.test(resolveFile)) return true;
+    return this.compiler.isExtensionFile(resolveFile);
+  }
+  createDeclaratorModuleImportReferences(module2, context, graph = null) {
+    if (!graph && context) {
+      graph = this.getBuildGraph(context);
+    }
+    this.createRequires(module2, context, graph);
+    this.createModuleImportReferences(module2, context, graph);
+  }
+  createModuleImportReferences(module2, context = null, graph = null) {
+    if (!import_Utils15.default.isModule(module2)) return;
+    if (!graph) {
+      graph = this.getBuildGraph(module2);
+    }
+    module2.getImportDeclarations().forEach((item) => {
+      if (item.source.isLiteral) {
+        parseImportDeclaration(this, item, context, graph);
+      }
+    });
+  }
+  createAssets(context, graph) {
+    const assets = context.assets;
+    if (assets && assets.size > 0) {
+      assets.forEach((asset) => {
+        if (asset.file) {
+          let source = asset.resolve;
+          let specifiers = null;
+          if (asset.assign) {
+            specifiers = [
+              {
+                local: asset.assign,
+                stack: asset.stack
+              }
+            ];
+          }
+          source = this.getImportAssetsMapping(source, {
+            group: "imports",
+            source,
+            specifiers,
+            ctx: this,
+            context
+          });
+          if (source) {
+            let _asset = this.createAsset(source);
+            _asset.file = asset.resolve;
+            _asset.local = asset.assign;
+            graph.addAsset(_asset);
+            source = this.getAssetsImportSource(_asset, context);
+            let importSource = null;
+            if (specifiers && specifiers.length > 0) {
+              specifiers.forEach((spec) => {
+                importSource = this.addImport(source, spec.local, spec.imported, spec.stack);
+              });
+            } else {
+              importSource = ctx.addImport(source, null, null, stack.source);
+            }
+            importSource.setSourceTarget(asset);
+            importSource.setSourceContext(context);
+            if (graph) {
+              graph.addImport(importSource);
+            }
+          }
+        } else if (asset.type === "style") {
+          const { index, type, attrs = {} } = asset;
+          const lang = attrs.lang || attrs.type || "css";
+          const suffix = "file." + lang;
+          let source = this.getModuleResourceId(context, { ...attrs, index, type, lang, [suffix]: "" });
+          let _asset = this.createStyleAsset(source, index);
+          _asset.code = asset.content;
+          source = this.getAssetsImportSource(_asset, context);
+          let importSource = this.addImport(source);
+          importSource.setSourceTarget(asset);
+          importSource.setSourceContext(context);
+          graph.addImport(importSource);
+          graph.addAsset(_asset);
+        }
+      });
+    }
+  }
+  createRequires(module2, context, graph) {
+    const requires = module2.requires;
+    if (requires && requires.size > 0) {
+      requires.forEach((item) => {
+        let local = item.name;
+        if (item.stack && item.stack.parentStack && item.stack.parentStack.isAnnotationDeclaration) {
+          let additional = item.stack.parentStack.additional;
+          if (additional && additional.isDeclaratorDeclaration && additional.module.id === local) {
+            local = this.getModuleReferenceName(additional.module, context);
+          }
+        }
+        this.createRequire(
+          module2,
+          graph,
+          item.from,
+          local,
+          item.namespaced ? "*" : item.key
+        );
+      });
+    }
+  }
+  createRequire(context, graph, source, local, imported = null) {
+    if (!source) return;
+    let specifiers = [{
+      local,
+      imported
+    }];
+    let target = source;
+    source = this.getImportAssetsMapping(source, {
+      group: "imports",
+      source,
+      specifiers,
+      context: this,
+      owner: context
+    });
+    if (source) {
+      let importSource = null;
+      if (specifiers.length > 0) {
+        specifiers.forEach((spec) => {
+          importSource = this.addImport(source, spec.local, spec.imported);
+        });
+      } else {
+        importSource = this.addImport(source);
+      }
+      if (importSource) {
+        importSource.setSourceTarget(target);
+        importSource.setSourceContext(context);
+      }
+      if (importSource && graph) {
+        graph.addImport(importSource);
+      }
+    }
+  }
+  crateModuleAssets(module2) {
+    if (!import_Utils15.default.isModule(module2)) return;
+    const graph = this.getBuildGraph(module2);
+    this.createAssets(module2, graph);
+    this.createRequires(module2, null, graph);
+  }
+  crateRootAssets() {
+    const compilation = this.target;
+    if (compilation) {
+      const graph = this.getBuildGraph(compilation);
+      this.createAssets(compilation, graph);
+      this.createRequires(compilation, null, graph);
+    }
+  }
+  createAllDependencies() {
+    const target = this.target;
+    const compilation = import_Utils15.default.isCompilation(target) ? target : null;
+    this.#dependencies.forEach((deps, moduleOrCompi) => {
+      const graph = this.getBuildGraph(moduleOrCompi);
+      deps.forEach((depModule) => {
+        if (depModule === target || compilation && compilation.modules.has(depModule.getName())) {
+          return;
+        }
+        if (moduleOrCompi !== depModule && this.isNeedBuild(depModule)) {
+          graph.addDepend(depModule);
+          if (!depModule.isDeclaratorModule || this.isVModule(depModule)) {
+            const name = this.getModuleReferenceName(depModule, moduleOrCompi);
+            const source = this.getModuleImportSource(depModule, moduleOrCompi);
+            const importSource = this.addImport(source, name);
+            importSource.setSourceTarget(depModule);
+            importSource.setSourceContext(moduleOrCompi);
+            graph.addImport(importSource);
+          } else if (depModule.isDeclaratorModule) {
+            this.createDeclaratorModuleImportReferences(depModule, moduleOrCompi, graph);
+          }
+        }
+      });
+    });
+  }
+  createModuleDependencies(module2) {
+    if (!import_Utils15.default.isModule(module2)) return;
+    let deps = this.getDependencies(module2);
+    if (!deps) return;
+    const graph = this.getBuildGraph(module2);
+    const compilation = module2.compilation;
+    deps.forEach((depModule) => {
+      if (compilation && compilation.modules && compilation.modules.has(depModule.getName())) {
+        return;
+      }
+      if (module2 !== depModule && this.isNeedBuild(depModule)) {
+        graph.addDepend(depModule);
+        if (!depModule.isDeclaratorModule || this.isVModule(depModule)) {
+          const name = this.getModuleReferenceName(depModule, module2);
+          const source = this.getModuleImportSource(depModule, module2);
+          const importSource = this.addImport(source, name);
+          importSource.setSourceTarget(depModule);
+          importSource.setSourceContext(module2);
+          graph.addImport(importSource);
+        } else if (depModule.isDeclaratorModule) {
+          this.createDeclaratorModuleImportReferences(depModule, module2, graph);
+        }
+      }
+    });
+  }
+  hasBuildGraph(module2) {
+    return this.graphs.hasBuildGraph(module2 || this.target);
+  }
+  getBuildGraph(module2 = null) {
+    let compilation = this.target;
+    let graphs = this.graphs;
+    if (!module2 || compilation === module2) {
+      return graphs.createBuildGraph(compilation);
+    }
+    if (import_Utils15.default.isModule(module2)) {
+      if (module2.isDeclaratorModule) {
+        const vm = this.getVModule(module2.getName());
+        if (vm) {
+          return graphs.createBuildGraph(vm);
+        }
+      }
+      let mainModule = compilation.mainModule;
+      if (module2 === mainModule) {
+        return graphs.createBuildGraph(compilation, module2);
+      }
+      let graph = graphs.createBuildGraph(module2, module2);
+      if (mainModule) {
+        let parent = graphs.createBuildGraph(compilation, mainModule);
+        parent.addChild(graph);
+      }
+      return graph;
+    } else {
+      if (isVModule(module2)) {
+        return graphs.createBuildGraph(module2, module2);
+      } else {
+        throw new Error("Exception module params");
+      }
+    }
+  }
+  getGlobalRefName(stack2, name, group = null) {
+    if (!stack2) {
+      stack2 = import_Utils15.default.isCompilation(this.target) ? this.target.stack : this;
+    }
+    let variables = this.variables;
+    if (group) {
+      let key = "getGlobalRefName:" + name;
+      if (this.cache.has(group, key)) {
+        return this.cache.get(group, key);
+      } else {
+        let value = variables.hasRefs(stack2, name, true) ? variables.genGlobalRefs(stack2, name) : variables.getGlobalRefs(stack2, name);
+        this.cache.set(group, key, value);
+        return value;
+      }
+    }
+    return variables.getGlobalRefs(stack2, name);
+  }
+  getLocalRefName(stack2, name, group = null) {
+    if (!stack2) {
+      stack2 = import_Utils15.default.isCompilation(this.target) ? this.target.stack : this;
+    }
+    let variables = this.variables;
+    if (group) {
+      let key = "getLocalRefName:" + name;
+      if (this.cache.has(group, key)) {
+        return this.cache.get(group, key);
+      } else {
+        let value = variables.hasRefs(stack2, name) ? variables.genLocalRefs(stack2, name) : variables.getLocalRefs(stack2, name);
+        this.cache.set(group, key, value);
+        return value;
+      }
+    }
+    return variables.getLocalRefs(stack2, name);
+  }
+  getImportAssetsMapping(file, options = {}) {
+    if (!options.group) {
+      options.group = "imports";
+    }
+    if (!options.delimiter) {
+      options.delimiter = "/";
+    }
+    return this.resolveImportSource(file, options);
+  }
+  getSourceFileMappingFolder(file, flag) {
+    const result = this.resolveSourceFileMappingPath(file, "folders");
+    return flag && !result ? file : result;
+  }
+  getModuleMappingFolder(module2) {
+    if (import_Utils15.default.isModule(module2)) {
+      return this.resolveSourceFileMappingPath(module2.getName("/") + ".module", "folders");
+    } else if (module2 && module2.file) {
+      return this.resolveSourceFileMappingPath(module2.file, "folders");
+    }
+    return null;
+  }
+  getAssetsImportSource(asset, context) {
+    let source = asset.sourceId;
+    if (this.options.emitFile) {
+      source = this.getRelativePath(
+        asset.getOutFile(this),
+        this.getOutputAbsolutePath(context)
+      );
+    }
+    return source;
+  }
+  getModuleImportSource(source, context, sourceId = null) {
+    const config = this.options;
+    const isString = typeof source === "string";
+    if (isString && isExternalDependency(this.options.dependences.externals, source, context)) {
+      return source;
+    }
+    if (isString && source.includes("${__filename}")) {
+      const owner = import_Utils15.default.isModule(context) ? context.compilation : context;
+      source = source.replace("${__filename}", import_Utils15.default.isCompilation(owner) ? owner.file : this.target.file);
+    }
+    if (isString && source.includes("/node_modules/")) {
+      if (import_path2.default.isAbsolute(source)) return source;
+      if (!sourceId) {
+        return this.resolveSourceFileMappingPath(source, "imports") || source;
+      }
+      return sourceId;
+    }
+    if (isString && !import_path2.default.isAbsolute(source)) {
+      return source;
+    }
+    if (config.emitFile) {
+      return this.getOutputRelativePath(source, context);
+    }
+    return isString ? source : this.getModuleResourceId(source);
+  }
+  getModuleResourceId(module2, query = {}) {
+    return this.compiler.parseResourceId(module2, query);
+  }
+  resolveSourceFileMappingPath(file, group, delimiter = "/") {
+    return this.resolveSourceId(file, group, delimiter);
+  }
+  resolveSourceId(id, group, delimiter = "/") {
+    let glob = this.#glob;
+    if (!glob) return null;
+    let data = { group, delimiter, failValue: null };
+    if (typeof group === "object") {
+      data = group;
+    }
+    return glob.dest(id, data);
+  }
+  resolveImportSource(id, ctx2 = {}) {
+    let glob = this.#glob;
+    if (!glob) return id;
+    const scheme = glob.scheme(id, ctx2);
+    let source = glob.parse(scheme, ctx2);
+    let rule = scheme.rule;
+    if (!rule) {
+      source = id;
+    }
+    return source;
+  }
+  genUniFileName(source, suffix = null) {
+    source = String(source);
+    let query = source.includes("?");
+    if (import_path2.default.isAbsolute(source) || query) {
+      let file = source;
+      if (query) {
+        file = source.split("?")[0];
+      }
+      let ext = import_path2.default.extname(file);
+      suffix = suffix || ext;
+      return import_path2.default.basename(file, ext) + "-" + (0, import_crypto2.createHash)("sha256").update(source).digest("hex").substring(0, 8) + suffix;
+    }
+    return source;
+  }
+  getOutputDir() {
+    return this.options.output || ".output";
+  }
+  getOutputExtName() {
+    return this.options.outext || ".js";
+  }
+  getOutputAbsolutePath(source) {
+    const isStr = typeof source === "string";
+    const output = this.getOutputDir();
+    const suffix = this.getOutputExtName();
+    if (!source) return output;
+    if (this.cache.has(source, "Context.getOutputAbsolutePath")) {
+      return this.cache.get(source, "Context.getOutputAbsolutePath");
+    }
+    let folder = isStr ? this.getSourceFileMappingFolder(source) : this.getModuleMappingFolder(source);
+    let filename = null;
+    if (isStr) {
+      filename = folder ? import_path2.default.basename(source) : this.compiler.getRelativeWorkspacePath(source, true) || this.genUniFileName(source);
+    } else {
+      if (import_Utils15.default.isModule(source)) {
+        if (source.isDeclaratorModule) {
+          const vm = this.getVModule(source.getName()) || source;
+          filename = folder ? vm.id : vm.getName("/");
+        } else {
+          filename = folder ? source.id : source.getName("/");
+        }
+      } else if (isVModule(source)) {
+        filename = folder ? source.id : source.getName("/");
+      } else if (source.file) {
+        filename = folder ? import_path2.default.basename(source.file) : this.compiler.getRelativeWorkspacePath(source.file) || this.genUniFileName(source.file);
+      }
+    }
+    if (!filename) {
+      throw new Error("File name not resolved correctly");
+    }
+    let info = import_path2.default.parse(filename);
+    if (!info.ext || this.compiler.isExtensionName(info.ext)) {
+      filename = import_path2.default.join(info.dir, info.name + suffix);
+    }
+    let result = null;
+    if (folder) {
+      result = import_Utils15.default.normalizePath(
+        import_path2.default.resolve(
+          import_path2.default.isAbsolute(folder) ? import_path2.default.join(folder, filename) : import_path2.default.join(output, folder, filename)
+        )
+      );
+    } else {
+      result = import_Utils15.default.normalizePath(
+        import_path2.default.resolve(
+          import_path2.default.join(output, filename)
+        )
+      );
+    }
+    if (result.includes("?")) {
+      result = import_path2.default.join(import_path2.default.dirname(result), this.genUniFileName(result, import_path2.default.extname(result)));
+    }
+    this.cache.set(source, "Context.getOutputAbsolutePath", result);
+    return result;
+  }
+  getOutputRelativePath(source, context) {
+    return this.getRelativePath(
+      this.getOutputAbsolutePath(source),
+      this.getOutputAbsolutePath(context)
+    );
+  }
+  getRelativePath(source, context) {
+    return "./" + import_Utils15.default.normalizePath(
+      import_path2.default.relative(
+        import_path2.default.dirname(context),
+        source
+      )
+    );
+  }
+  getVNodeApi(name) {
+    let local = this.getGlobalRefName(null, name);
+    this.addImport("vue", local, name);
+    return local;
+  }
+  async emit(buildGraph) {
+    let outfile = buildGraph.outfile;
+    import_fs3.default.mkdirSync(import_path2.default.dirname(outfile), { recursive: true });
+    import_fs3.default.writeFileSync(outfile, buildGraph.code);
+    let sourcemap = buildGraph.sourcemap;
+    if (sourcemap) {
+      import_fs3.default.writeFileSync(outfile + ".map", JSON.stringify(sourcemap.toJSON()));
+    }
+  }
+  error(message, stack2 = null) {
+    if (this.target) {
+      let range = stack2 && stack2 instanceof import_Range.default ? stack2 : null;
+      if (!range && import_Utils15.default.isStack(stack2)) {
+        range = this.target.getRangeByNode(stack2.node);
+      }
+      const file = this.target.file;
+      if (range) {
+        message += ` (${file}:${range.start.line}:${range.start.column})`;
+      } else {
+        message += `(${file})`;
+      }
+    }
+    import_Utils15.default.error(message);
+  }
+  warn(message, stack2 = null) {
+    if (this.target) {
+      let range = stack2 && stack2 instanceof import_Range.default ? stack2 : null;
+      if (!range && import_Utils15.default.isStack(stack2)) {
+        range = this.target.getRangeByNode(stack2.node);
+      }
+      const file = this.target.file;
+      if (range) {
+        message += ` (${file}:${range.start.line}:${range.start.column})`;
+      } else {
+        message += `(${file})`;
+      }
+    }
+    import_Utils15.default.warn(message);
+  }
+};
+var Context_default = Context;
+
+// lib/core/Variable.js
+var import_Utils16 = __toESM(require("easescript/lib/core/Utils"));
+var import_Scope = __toESM(require("easescript/lib/core/Scope"));
+var REFS_All = 31;
+var REFS_TOP = 16;
+var REFS_UP_CLASS = 8;
+var REFS_UP_FUN = 4;
+var REFS_UP = 2;
+var REFS_DOWN = 1;
+var Manage = class {
+  #ctxScope = null;
+  #cache = /* @__PURE__ */ new Map();
+  constructor(ctxScope) {
+    this.#ctxScope = ctxScope;
+  }
+  get(name) {
+    return this.#cache.get(name);
+  }
+  has(name) {
+    return this.#cache.has(name);
+  }
+  get ctxScope() {
+    return this.#ctxScope;
+  }
+  check(name, scope, flags = REFS_All) {
+    if (this.#cache.has(name)) return true;
+    if (!import_Scope.default.is(scope)) {
+      return false;
+    }
+    if (flags === REFS_All) {
+      return scope.checkDocumentDefineScope(name, ["class"]);
+    }
+    if (scope.isDefine(name)) {
+      return true;
+    }
+    let index = 0;
+    let flag = 0;
+    while (flag < (flags & REFS_All)) {
+      flag = Math.pow(2, index++);
+      switch (flags & flag) {
+        case REFS_DOWN:
+          if (scope.declarations.has(name) || scope.hasChildDeclared(name)) return true;
+        case REFS_UP:
+          if (scope.isDefine(name)) return true;
+        case REFS_TOP:
+          if (scope.isDefine(name) || scope.hasChildDeclared(name)) return true;
+        case REFS_UP_FUN:
+          if (scope.isDefine(name, "function")) return true;
+        case REFS_UP_CLASS:
+          if (scope.isDefine(name, "class")) return true;
+      }
+    }
+    return false;
+  }
+  gen(name, scope, flags = REFS_All) {
+    let index = 0;
+    let value = name;
+    while (this.check(value = name + index, scope, flags)) {
+      index++;
+    }
+    this.#cache.set(name, value);
+    this.#cache.set(value, value);
+    return value;
+  }
+  getRefs(name, scope, flags = REFS_All) {
+    if (scope) {
+      if (this.check(name, scope, flags)) {
+        return this.gen(name, scope, flags);
+      } else {
+        this.#cache.set(name, name);
+      }
+    } else {
+      this.#cache.set(name, name);
+    }
+    return name;
+  }
+};
+function getVariableManager() {
+  const records3 = /* @__PURE__ */ new Map();
+  function _getVariableManage(ctxScope) {
+    let manage = records3.get(ctxScope);
+    if (!manage) {
+      records3.set(ctxScope, manage = new Manage(ctxScope));
+    }
+    return manage;
+  }
+  function hasScopeDefined(context, name, isTop = false, flags = REFS_All) {
+    let manage = getVariableManage(context, isTop);
+    if (import_Utils16.default.isStack(context)) {
+      return manage.check(name, context.scope, flags);
+    }
+    return false;
+  }
+  function hasGlobalScopeDefined(context, name) {
+    return hasScopeDefined(context, name, true, REFS_All);
+  }
+  function hasLocalScopeDefined(context, name) {
+    return hasScopeDefined(context, name, false, REFS_DOWN | REFS_UP_FUN);
+  }
+  function hasRefs(context, name, isTop = false) {
+    let manage = getVariableManage(context, isTop);
+    return manage.has(name);
+  }
+  function getRefs(context, name, isTop = false, flags = REFS_All) {
+    let manage = null;
+    let ctxScope = context;
+    let scope = null;
+    if (import_Utils16.default.isStack(context)) {
+      scope = context.scope;
+      if (!import_Scope.default.is(scope)) {
+        throw new Error("Variable.getRefs scope invalid");
+      }
+      manage = _getVariableManage(
+        isTop ? scope.getScopeByType("top") : scope.getScopeByType("function") || scope.getScopeByType("top")
+      );
+    } else {
+      manage = _getVariableManage(ctxScope);
+    }
+    if (manage.has(name)) {
+      return manage.get(name);
+    }
+    return manage.getRefs(name, scope, flags);
+  }
+  function getVariableManage(context, isTop = false) {
+    if (import_Utils16.default.isStack(context)) {
+      let scope = context.scope;
+      if (!import_Scope.default.is(scope)) {
+        throw new Error("Variable.getRefs scope invalid");
+      }
+      return _getVariableManage(
+        isTop ? scope.getScopeByType("top") : scope.getScopeByType("function") || scope.getScopeByType("top")
+      );
+    } else {
+      return _getVariableManage(context);
+    }
+  }
+  function getGlobalRefs(context, name) {
+    return getRefs(context, name, true, REFS_All);
+  }
+  function getLocalRefs(context, name) {
+    return getRefs(context, name, false, REFS_DOWN | REFS_UP_FUN);
+  }
+  function genRefs(context, name, isTop = false, flags = REFS_DOWN | REFS_UP_FUN) {
+    let manage = getVariableManage(context, isTop);
+    if (import_Utils16.default.isStack(context)) {
+      return manage.gen(name, context.scope, flags);
+    } else {
+      return manage.gen(name, null, flags);
+    }
+  }
+  function genGlobalRefs(context, name) {
+    return genRefs(context, name, true, REFS_All);
+  }
+  function genLocalRefs(context, name) {
+    return genRefs(context, name, false, REFS_DOWN | REFS_UP_FUN);
+  }
+  function clearAll() {
+    records3.clear();
+  }
+  return {
+    getVariableManage,
+    getRefs,
+    getLocalRefs,
+    getGlobalRefs,
+    hasRefs,
+    hasGlobalScopeDefined,
+    hasLocalScopeDefined,
+    genGlobalRefs,
+    genLocalRefs,
+    clearAll
+  };
+}
+
 // lib/core/BuildGraph.js
 var BuildGraph = class {
   #code = "";
@@ -6979,1156 +8246,210 @@ var BuildGraph = class {
     return null;
   }
 };
-var records3 = /* @__PURE__ */ new Map();
-function createBuildGraph(moduleOrCompilation, module2 = null) {
-  let old = records3.get(moduleOrCompilation);
-  if (old) return old;
-  let graph = new BuildGraph(module2);
-  records3.set(moduleOrCompilation, graph);
-  return graph;
-}
-function hasBuildGraph(moduleOrCompilation) {
-  return records3.has(moduleOrCompilation);
+function getBuildGraphManager() {
+  const records3 = /* @__PURE__ */ new Map();
+  function createBuildGraph(moduleOrCompilation, module2 = null) {
+    let old = records3.get(moduleOrCompilation);
+    if (old) return old;
+    let graph = new BuildGraph(module2);
+    records3.set(moduleOrCompilation, graph);
+    return graph;
+  }
+  function getBuildGraph(moduleOrCompilation) {
+    return records3.get(moduleOrCompilation);
+  }
+  function setBuildGraph(moduleOrCompilation, graph) {
+    return records3.set(moduleOrCompilation, graph);
+  }
+  function hasBuildGraph(moduleOrCompilation) {
+    return records3.has(moduleOrCompilation);
+  }
+  function clear(compilation) {
+    keys.forEach(([value, key]) => {
+      if (key === compilation || key.compilation === compilation) {
+        records3.delete(key);
+      }
+    });
+  }
+  function clearAll() {
+    records3.clear();
+    mainGraphs.clear();
+  }
+  return {
+    clear,
+    clearAll,
+    setBuildGraph,
+    getBuildGraph,
+    createBuildGraph,
+    hasBuildGraph
+  };
 }
 
-// lib/core/VirtualModule.js
-var import_Namespace7 = __toESM(require("easescript/lib/core/Namespace"));
-var VirtualModule = class {
-  #id = "";
-  #ns = [];
+// lib/core/Asset.js
+var import_path3 = __toESM(require("path"));
+var import_fs4 = __toESM(require("fs"));
+var Asset = class {
+  #code = "";
+  #type = "";
   #file = null;
-  #content = "";
-  #ext = ".virtual";
-  #exports = [];
-  #imports = [];
+  #sourcemap = null;
+  #local = null;
+  #imported = null;
+  #sourceId = null;
+  #outfile = null;
+  #id = null;
   #changed = true;
-  #references = /* @__PURE__ */ new Map();
-  constructor(id, ns, file) {
+  constructor(sourceFile, type, id = null) {
+    this.#type = type;
+    this.#file = sourceFile;
+    this.#sourceId = sourceFile;
     this.#id = id;
-    this.#ns = Array.isArray(ns) ? ns : String(ns).split(".");
-    this.#file = file;
+  }
+  get code() {
+    let code = this.#code;
+    if (code) return code;
+    let file = this.file;
+    if (file && import_fs4.default.existsSync(file)) {
+      this.#code = import_fs4.default.readFileSync(file).toString("utf8");
+    }
+    return this.#code;
+  }
+  set code(value) {
+    this.#code = value;
+    this.#changed = true;
   }
   get id() {
     return this.#id;
   }
-  get bindModule() {
-    return import_Namespace7.default.globals.get(this.getName());
+  set id(value) {
+    this.#id = value;
+  }
+  get local() {
+    return this.#local;
+  }
+  set local(value) {
+    this.#local = value;
+  }
+  get imported() {
+    return this.#imported;
+  }
+  set imported(value) {
+    this.#imported = value;
   }
   get file() {
-    return this.#file || this.getName("/") + this.#ext;
+    return this.#file;
   }
   set file(value) {
     this.#file = value;
   }
-  get ext() {
-    return this.#ext;
+  get sourceId() {
+    return this.#sourceId;
   }
-  set ext(value) {
-    this.#ext = value;
+  set sourceId(value) {
+    this.#sourceId = value;
   }
-  get changed() {
-    return this.#changed;
+  get type() {
+    return this.#type;
   }
-  addExport(exported, local = null, importSource = null, stack2 = null) {
-    let has2 = this.#exports.some((item) => item[0] === exported);
-    if (!has2) {
-      this.#exports.push([exported, local, importSource, stack2]);
+  get sourcemap() {
+    return this.#sourcemap;
+  }
+  set sourcemap(value) {
+    this.#sourcemap = value;
+  }
+  get outfile() {
+    return this.#outfile;
+  }
+  getOutFile(ctx2) {
+    if (this.#outfile) return this.#outfile;
+    let source = ctx2.getOutputAbsolutePath(this.sourceId);
+    let ext = ctx2.getOutputExtName();
+    if (!source.endsWith(ext)) {
+      source += ext;
     }
-  }
-  addImport(source, local = null, imported = null) {
-    let has2 = this.#imports.some((item) => item[0] === source && item[1] === local);
-    if (!has2) {
-      this.#imports.push([source, local, imported]);
-    }
-  }
-  addReference(className, local = null) {
-    local = local || String(className).split(".").pop();
-    this.#references.set(className, local);
-  }
-  getReferences() {
-    return this.#references;
-  }
-  getName(seg = ".") {
-    return this.#ns.concat(this.#id).join(seg);
-  }
-  getSourcemap() {
-    return null;
-  }
-  getContent() {
-    return this.#content;
-  }
-  setContent(content) {
-    this.#content = content;
-    this.#changed = true;
-  }
-  createImports(ctx2) {
-    this.#imports.forEach((args) => {
-      ctx2.addImport(...args);
-    });
-  }
-  createExports(ctx2) {
-    let exportName = this.id;
-    this.#exports.forEach(([exported, local, importSource, stack2]) => {
-      if (exported === "default") {
-        if (typeof local === "string") {
-          exportName = local;
-        } else if (local.type === "Identifier") {
-          exportName = local.value;
-        }
-      }
-      if (typeof local === "string") {
-        local = ctx2.createIdentifier(local);
-      }
-      ctx2.addExport(exported, local, importSource, stack2);
-    });
-    return exportName;
-  }
-  createReferences(ctx2, graph) {
-    this.getReferences().forEach((local, classname) => {
-      let module2 = import_Namespace7.default.globals.get(classname);
-      if (module2) {
-        let dep = null;
-        if (module2.isDeclaratorModule) {
-          dep = getVModule(module2.getName());
-        } else {
-          dep = module2;
-        }
-        if (dep) {
-          let importSource = ctx2.addImport(
-            ctx2.getModuleImportSource(dep, this),
-            local
-          );
-          importSource.setSourceTarget(dep);
-          importSource.setSourceContext(this);
-          graph.addImport(importSource);
-          graph.addDepend(dep);
-        }
-      }
-    });
-  }
-  gen(ctx2, body = []) {
-    let imports = [];
-    let exports2 = [];
-    let exportNodes = null;
-    let importNodes = null;
-    if (ctx2.options.module === "cjs") {
-      importNodes = createCJSImports(ctx2, ctx2.imports);
-      exportNodes = createCJSExports(ctx2, ctx2.exports);
-    } else {
-      importNodes = createESMImports(ctx2, ctx2.imports);
-      exportNodes = createESMExports(ctx2, ctx2.exports);
-    }
-    imports.push(...importNodes, ...exportNodes.imports);
-    body.push(...exportNodes.declares);
-    exports2.push(...exportNodes.exports);
-    const generator = new Generator_default(ctx2, false);
-    const layout = [
-      ...imports,
-      ctx2.createChunkExpression(this.getContent()),
-      ...body,
-      ...exports2
-    ];
-    layout.forEach((item) => generator.make(item));
-    return generator;
+    this.#outfile = source;
+    return source;
   }
   async build(ctx2) {
-    const graph = createBuildGraph(this, this.bindModule);
-    if (!this.#changed && graph.code) return graph;
-    this.#changed = false;
-    this.createImports(ctx2);
-    this.createReferences(ctx2, graph);
-    let body = [];
-    let exportName = this.createExports(ctx2);
-    if (this.id === "Class" && this.#ns.length === 0) {
-      let properties = Object.keys(Constant_exports).map((key) => {
-        if (key === "PRIVATE_NAME") return;
-        return ctx2.createProperty(
-          ctx2.createIdentifier(key),
-          ctx2.createLiteral(Constant_exports[key])
-        );
-      }).filter(Boolean);
-      properties.sort((a, b) => {
-        return a.init.value - b.init.value;
-      });
-      body.push(
-        ctx2.createExpressionStatement(
-          ctx2.createAssignmentExpression(
-            ctx2.createMemberExpression([
-              ctx2.createIdentifier("Class"),
-              ctx2.createIdentifier("constant")
-            ]),
-            ctx2.createObjectExpression(properties)
-          )
-        )
-      );
-    } else {
-      body.push(
-        this.createClassDescriptors(ctx2, exportName, this.id)
-      );
-    }
-    ctx2.createAllDependencies();
-    graph.code = this.gen(ctx2, body).code;
-    graph.sourcemap = this.getSourcemap();
+    if (!this.#changed) return;
     if (ctx2.options.emitFile) {
-      graph.outfile = ctx2.getOutputAbsolutePath(this);
+      let code = this.code;
+      if (ctx2.options.module === "cjs") {
+        code = `module.exports=${JSON.stringify(code)};`;
+      } else {
+        code = `export default ${JSON.stringify(code)};`;
+      }
+      this.code = code;
+      this.#outfile = this.getOutFile(ctx2);
+      ctx2.emit(this);
     }
-    return graph;
-  }
-  createClassDescriptors(ctx2, exportName, className) {
-    return ctx2.createCallExpression(
-      createStaticReferenceNode(ctx2, null, "Class", "creator"),
-      [
-        ctx2.createIdentifier(exportName),
-        ctx2.createObjectExpression([
-          ctx2.createProperty(
-            ctx2.createIdentifier("m"),
-            ctx2.createLiteral(KIND_CLASS | MODIFIER_PUBLIC)
-          ),
-          ctx2.createProperty(
-            ctx2.createIdentifier("name"),
-            ctx2.createLiteral(className)
-          )
-        ])
-      ]
-    );
+    this.#changed = false;
   }
 };
-var virtualization = /* @__PURE__ */ new Map();
-function createVModule(sourceId, file = null) {
-  sourceId = Array.isArray(sourceId) ? sourceId.join(".") : String(sourceId);
-  let old = virtualization.get(sourceId);
-  if (old) return old;
-  let segs = sourceId.split(".");
-  let vm = new VirtualModule(segs.pop(), segs, file);
-  virtualization.set(sourceId, vm);
-  return vm;
-}
-function getVModule(sourceId) {
-  return virtualization.get(sourceId);
-}
-function hasVModule(sourceId) {
-  return virtualization.has(sourceId);
-}
-function isVModule(value) {
-  return value ? value instanceof VirtualModule : false;
-}
-
-// lib/core/Variable.js
-var import_Utils15 = __toESM(require("easescript/lib/core/Utils"));
-var import_Scope = __toESM(require("easescript/lib/core/Scope"));
-var REFS_All = 31;
-var REFS_TOP = 16;
-var REFS_UP_CLASS = 8;
-var REFS_UP_FUN = 4;
-var REFS_UP = 2;
-var REFS_DOWN = 1;
-var records4 = /* @__PURE__ */ new Map();
-var Manage = class {
-  #ctxScope = null;
-  #cache = /* @__PURE__ */ new Map();
-  constructor(ctxScope) {
-    this.#ctxScope = ctxScope;
-  }
-  get(name) {
-    return this.#cache.get(name);
-  }
-  has(name) {
-    return this.#cache.has(name);
-  }
-  get ctxScope() {
-    return this.#ctxScope;
-  }
-  check(name, scope, flags = REFS_All) {
-    if (this.#cache.has(name)) return true;
-    if (!import_Scope.default.is(scope)) {
-      return false;
-    }
-    if (flags === REFS_All) {
-      return scope.checkDocumentDefineScope(name, ["class"]);
-    }
-    if (scope.isDefine(name)) {
-      return true;
-    }
-    let index = 0;
-    let flag = 0;
-    while (flag < (flags & REFS_All)) {
-      flag = Math.pow(2, index++);
-      switch (flags & flag) {
-        case REFS_DOWN:
-          if (scope.declarations.has(name) || scope.hasChildDeclared(name)) return true;
-        case REFS_UP:
-          if (scope.isDefine(name)) return true;
-        case REFS_TOP:
-          if (scope.isDefine(name) || scope.hasChildDeclared(name)) return true;
-        case REFS_UP_FUN:
-          if (scope.isDefine(name, "function")) return true;
-        case REFS_UP_CLASS:
-          if (scope.isDefine(name, "class")) return true;
-      }
-    }
-    return false;
-  }
-  gen(name, scope, flags = REFS_All) {
-    let index = 0;
-    let value = name;
-    while (this.check(value = name + index, scope, flags)) {
-      index++;
-    }
-    this.#cache.set(name, value);
-    this.#cache.set(value, value);
-    return value;
-  }
-  getRefs(name, scope, flags = REFS_All) {
-    if (scope) {
-      if (this.check(name, scope, flags)) {
-        return this.gen(name, scope, flags);
-      } else {
-        this.#cache.set(name, name);
+function getAssetsManager(AssetFactory) {
+  const records3 = /* @__PURE__ */ new Map();
+  function createAsset(sourceFile, id = null, type = null) {
+    if (!type) {
+      type = import_path3.default.extname(sourceFile);
+      if (type.startsWith(".")) {
+        type = type.substring(1);
       }
     } else {
-      this.#cache.set(name, name);
+      type = String(type);
     }
-    return name;
-  }
-};
-function _getVariableManage(ctxScope) {
-  let manage = records4.get(ctxScope);
-  if (!manage) {
-    records4.set(ctxScope, manage = new Manage(ctxScope));
-  }
-  return manage;
-}
-function hasRefs(context, name, isTop = false) {
-  let manage = getVariableManage(context, isTop);
-  return manage.has(name);
-}
-function getRefs(context, name, isTop = false, flags = REFS_All) {
-  let manage = null;
-  let ctxScope = context;
-  let scope = null;
-  if (import_Utils15.default.isStack(context)) {
-    scope = context.scope;
-    if (!import_Scope.default.is(scope)) {
-      throw new Error("Variable.getRefs scope invalid");
+    let key = sourceFile + ":" + type;
+    if (id != null) {
+      key = sourceFile + ":" + id + ":" + type;
     }
-    manage = _getVariableManage(
-      isTop ? scope.getScopeByType("top") : scope.getScopeByType("function") || scope.getScopeByType("top")
-    );
-  } else {
-    manage = _getVariableManage(ctxScope);
-  }
-  if (manage.has(name)) {
-    return manage.get(name);
-  }
-  return manage.getRefs(name, scope, flags);
-}
-function getVariableManage(context, isTop = false) {
-  if (import_Utils15.default.isStack(context)) {
-    let scope = context.scope;
-    if (!import_Scope.default.is(scope)) {
-      throw new Error("Variable.getRefs scope invalid");
+    let asset = records3.get(key);
+    if (!asset) {
+      records3.set(sourceFile, asset = new AssetFactory(sourceFile, type, id));
     }
-    return _getVariableManage(
-      isTop ? scope.getScopeByType("top") : scope.getScopeByType("function") || scope.getScopeByType("top")
-    );
-  } else {
-    return _getVariableManage(context);
+    return asset;
   }
-}
-function getGlobalRefs(context, name) {
-  return getRefs(context, name, true, REFS_All);
-}
-function getLocalRefs(context, name) {
-  return getRefs(context, name, false, REFS_DOWN | REFS_UP_FUN);
-}
-function genRefs(context, name, isTop = false, flags = REFS_DOWN | REFS_UP_FUN) {
-  let manage = getVariableManage(context, isTop);
-  if (import_Utils15.default.isStack(context)) {
-    return manage.gen(name, context.scope, flags);
-  } else {
-    return manage.gen(name, null, flags);
+  function createStyleAsset(sourceFile, id = null) {
+    return createAsset(sourceFile, id, "style");
   }
-}
-function genGlobalRefs(context, name) {
-  return genRefs(context, name, true, REFS_All);
-}
-function genLocalRefs(context, name) {
-  return genRefs(context, name, false, REFS_DOWN | REFS_UP_FUN);
-}
-
-// lib/core/Context.js
-var import_Utils16 = __toESM(require("easescript/lib/core/Utils"));
-var import_Range = __toESM(require("easescript/lib/core/Range"));
-var import_crypto2 = require("crypto");
-var Context = class _Context extends import_Token.default {
-  static is(value) {
-    return value ? value instanceof _Context : false;
+  function getAsset(sourceFile, id = null, type = "") {
+    let key = sourceFile + ":" + type;
+    if (id) {
+      key = sourceFile + ":" + id + ":" + type;
+    }
+    return records3.get(key);
   }
-  #createToken = null;
-  #tokens = null;
-  #target = null;
-  #dependencies = /* @__PURE__ */ new Map();
-  #plugin = null;
-  #nodes = /* @__PURE__ */ new Map();
-  #imports = new ImportManage();
-  #exports = new ExportManage();
-  #afterBody = [];
-  #beforeBody = [];
-  #buildOptions = {};
-  #fragments = null;
-  constructor(plugin2, compiOrVModule = null) {
-    super();
-    this.#plugin = plugin2;
-    this.#target = compiOrVModule;
-    const _createToken = this.options.transform.createToken;
-    const _tokens = this.options.transform.tokens;
-    if (_tokens && typeof _tokens === "object" && Object.keys(_tokens).length > 0) {
-      this.#tokens = (type) => {
-        if (Object.prototype.hasOwnProperty.call(_tokens, type)) {
-          return _tokens[type];
-        }
-        return tokens_exports[type];
-      };
+  function getStyleAsset(sourceFile, id = null) {
+    return getAsset(sourceFile, id, "style");
+  }
+  function getAssets() {
+    return Array.from(records3.values());
+  }
+  function setAsset(sourceFile, asset, id = null, type = null) {
+    if (!type) {
+      type = import_path3.default.extname(sourceFile);
+      if (type.startsWith(".")) {
+        type = type.substring(1);
+      }
     } else {
-      this.#tokens = (type) => {
-        return tokens_exports[type];
-      };
+      type = String(type);
     }
-    if (_createToken && typeof _createToken === "function") {
-      this.#createToken = (token, stack2, type) => {
-        try {
-          return _createToken(this, token, stack2, type);
-        } catch (e) {
-          console.error(e);
-        }
-      };
-    } else {
-      this.#createToken = (token, stack2, type) => {
-        if (!token) {
-          throw new Error(`Token '${type}' is not exists.`);
-        }
-        try {
-          return token(this, stack2, type);
-        } catch (e) {
-          console.error(e);
-        }
-      };
+    let key = sourceFile + ":" + type;
+    if (id != null) {
+      key = sourceFile + ":" + id + ":" + type;
     }
-  }
-  get plugin() {
-    return this.#plugin;
-  }
-  get compiler() {
-    return this.#plugin.getComplier();
-  }
-  get target() {
-    return this.#target;
-  }
-  get options() {
-    return this.#plugin.options;
-  }
-  get imports() {
-    return this.#imports;
-  }
-  get exports() {
-    return this.#exports;
-  }
-  get afterBody() {
-    return this.#afterBody;
-  }
-  get beforeBody() {
-    return this.#beforeBody;
-  }
-  setBuildOptions(options = {}) {
-    this.#buildOptions = options;
-  }
-  getBuildOptions() {
-    return this.#buildOptions;
-  }
-  createAsset(source) {
-    return this.plugin.assets.createAsset(source);
-  }
-  createStyleAsset(source, index) {
-    return this.plugin.assets.createStyleAsset(source, index);
-  }
-  createToken(stack2) {
-    if (!stack2) return null;
-    const type = stack2.toString();
-    if (type === "TypeStatement") return null;
-    if (type === "NewDefinition") return null;
-    if (type === "CallDefinition") return null;
-    if (type === "TypeDefinition") return null;
-    if (type === "TypeGenericDefinition") return null;
-    if (type === "DeclaratorDeclaration") return null;
-    const token = this.#tokens(type);
-    return this.#createToken(token, stack2, type);
-  }
-  addNodeToAfterBody(node) {
-    if (node) {
-      let afterBody = this.#afterBody || (this.#afterBody = []);
-      afterBody.push(node);
-    }
-    return node;
-  }
-  addNodeToBeforeBody(node) {
-    if (node) {
-      let beforeBody = this.#beforeBody || (this.#beforeBody = []);
-      beforeBody.push(node);
-    }
-    return node;
-  }
-  addImport(source, local = null, imported = null, stack2 = null) {
-    return this.#imports.createImportSource(source, local, imported, stack2);
-  }
-  getImport(source, isNamespace = false) {
-    return this.#imports.getImportSource(source, isNamespace);
-  }
-  hasImport(source, local = null, isNamespace = false) {
-    return this.#imports.hasImportSource(source, local, isNamespace);
-  }
-  addExport(exported, local = null, importSource = null, stack2 = null) {
-    return this.#exports.createExportSource(exported, local, importSource, stack2);
-  }
-  hasExport(exported) {
-    return this.#exports.hasExportSource(exported);
-  }
-  addFragment(compilation) {
-    let fragments = this.#fragments || (this.#fragments = /* @__PURE__ */ new Set());
-    fragments.add(compilation);
-  }
-  getFragments() {
-    return this.#fragments;
-  }
-  addDepend(dep, context = null) {
-    context = context || this.target;
-    let deps = this.#dependencies.get(context);
-    if (!deps) {
-      this.#dependencies.set(context, deps = /* @__PURE__ */ new Set());
-    }
-    deps.add(dep);
-  }
-  getDependencies(context = null) {
-    context = context || this.target;
-    return this.#dependencies.get(context);
-  }
-  getAllDependencies() {
-    const deps = /* @__PURE__ */ new Set();
-    this.#dependencies.forEach((dataset) => {
-      dataset.forEach((dep) => deps.add(dep));
-    });
-    return deps;
-  }
-  isUsed(module2, context = null) {
-    if (!module2) return false;
-    context = context || this.target;
-    let deps = this.#dependencies.get(context);
-    if (deps && deps.has(module2)) {
-      return true;
-    }
-    if (isVModule(module2)) return true;
-    return module2.compilation === this.target;
-  }
-  isVModule(module2) {
-    if (module2) {
-      if (module2.isDeclaratorModule) {
-        return hasVModule(module2.getName());
-      } else if (isVModule(module2)) {
-        return module2;
-      }
-    }
-    return false;
-  }
-  isActiveModule(depModule, context = null) {
-    if (!depModule) return false;
-    context = context || this.target;
-    if (!this.isUsed(depModule, context)) return false;
-    if (depModule.isDeclaratorModule) {
-      if (hasVModule(depModule.getName())) {
-        return true;
-      }
-      if (this.isDeclaratorModuleDependency(depModule)) {
-        return true;
-      }
-      return false;
-    } else {
-      if (isVModule(depModule)) return true;
-      if (context) {
-        return !import_Utils16.default.checkDepend(context, depModule);
-      }
-      return true;
-    }
-  }
-  isNeedBuild(module2) {
-    if (!module2) return false;
-    if (isVModule(module2)) return true;
-    if (has(module2, "isNeedBuild")) {
-      return has(module2, "isNeedBuild");
-    }
-    let result = this.compiler.isPluginInContext(this.plugin, module2);
-    if (result) {
-      const annots = getModuleAnnotations(module2, ["runtime", "syntax"]);
-      if (annots.length > 0) {
-        result = annots.every((annot) => {
-          const data = parseMacroAnnotation(annot);
-          if (!data) {
-            throw new Error("Annotations parse data exception.");
-          }
-          const name = annot.getLowerCaseName();
-          switch (name) {
-            case "runtime":
-              return isRuntime(data.value, this.options.metadata || {}) === data.expect;
-            case "syntax":
-              return isSyntax(data.value, this.plugin.version) === data.expect;
-          }
-          return false;
-        });
-      }
-    }
-    has(module2, "isNeedBuild", result);
-    return result;
-  }
-  hasDeclareModule(module2) {
-    if (import_Utils16.default.isCompilation(this.target)) {
-      if (this.target.modules.has(module2.getName())) {
-        return true;
-      }
-      return this.target.importModuleNameds.has(module2);
-    }
-    return false;
-  }
-  setNode(stack2, node) {
-    this.#nodes.set(stack2, node);
-  }
-  getNode(stack2) {
-    return this.#nodes.get(stack2);
-  }
-  removeNode(stack2) {
-    this.#nodes.delete(stack2);
-  }
-  getModuleReferenceName(module2, context = null) {
-    let name = null;
-    if (isVModule(module2)) {
-      name = module2.getName("_");
-    } else {
-      if (!import_Utils16.default.isModule(module2)) return null;
-      if (!context) context = this.target;
-      if (import_Utils16.default.isModule(context)) {
-        if (context.isDeclaratorModule) {
-          const vm = getVModule(context.getName());
-          if (vm) {
-            const references = vm.getReferences();
-            if (references) {
-              const className = module2.getName();
-              if (references.has(className)) {
-                name = references.get(className);
-              }
-            }
-          }
-        }
-        if (!name) {
-          name = context.getReferenceNameByModule(module2);
-        }
-      } else if (import_Utils16.default.isCompilation(context)) {
-        name = context.getReferenceName(module2);
-      }
-      if (this.hasDeclareModule(module2)) {
-        return name;
-      }
-      if (!name) {
-        name = module2.getName("_");
-      }
-    }
-    return this.getGlobalRefName(null, name);
-  }
-  isDeclaratorModuleDependency(module2) {
-    if (!import_Utils16.default.isClassType(module2)) return false;
-    if (module2.required && module2.isAnnotationCreated) {
-      return true;
-    } else if (module2.isDeclaratorModule) {
-      return module2.getStacks().some((stack2) => {
-        if (!Array.isArray(stack2.imports)) return false;
-        return stack2.imports.some((item) => {
-          if (item.isImportDeclaration && item.source.isLiteral) {
-            return item.specifiers.some((spec) => spec.value() === module2.id);
-          }
-          return false;
-        });
-      });
-    }
-    return false;
-  }
-  isES6ClassModule(module2) {
-    const annots = getModuleAnnotations(module2, ["define"], false);
-    return annots.some((annot) => {
-      const data = parseDefineAnnotation(annot);
-      return data.es6class;
-    });
-  }
-  isLoadAssetsRawCode(stack2, resolveFile) {
-    if (!stack2 || !resolveFile) return false;
-    if (!stack2.isAnnotationDeclaration) return false;
-    if (stack2.getLowerCaseName() !== "embed") return false;
-    if (/\.[m|c]?js$/i.test(resolveFile)) return true;
-    return this.compiler.isExtensionFile(resolveFile);
-  }
-  createDeclaratorModuleImportReferences(module2, context, graph = null) {
-    if (!graph && context) {
-      graph = this.getBuildGraph(context);
-    }
-    this.createRequires(module2, graph);
-    this.createModuleImportReferences(module2, graph);
-  }
-  createModuleImportReferences(module2, graph = null) {
-    if (!import_Utils16.default.isModule(module2)) return;
-    if (!graph) {
-      graph = this.getBuildGraph(module2);
-    }
-    module2.getImportDeclarations().forEach((item) => {
-      if (item.source.isLiteral) {
-        parseImportDeclaration(this, item, module2, graph);
-      }
-    });
-  }
-  createAssets(context, graph) {
-    const assets = context.assets;
-    if (assets && assets.size > 0) {
-      assets.forEach((asset) => {
-        if (asset.file) {
-          let source = asset.resolve;
-          let external = isExternalDependency(this.options.dependences.externals, source, context);
-          let specifiers = null;
-          if (!external) {
-            if (asset.assign) {
-              specifiers = [
-                {
-                  local: asset.assign,
-                  stack: asset.stack
-                }
-              ];
-            }
-            if (this.isLoadAssetsRawCode(asset.stack, source)) {
-              source = `${source}?type=rawcode`;
-            }
-            source = this.getImportAssetsMapping(source, {
-              group: "imports",
-              source,
-              specifiers,
-              ctx: this,
-              context
-            });
-            if (source) {
-              let _asset = this.createAsset(source);
-              _asset.file = asset.resolve;
-              _asset.local = asset.assign;
-              graph.addAsset(_asset);
-              source = this.getAssetsImportSource(_asset, context);
-            }
-          }
-          if (source) {
-            let importSource = null;
-            if (specifiers && specifiers.length > 0) {
-              specifiers.forEach((spec) => {
-                importSource = this.addImport(source, spec.local, spec.imported, spec.stack);
-              });
-            } else {
-              importSource = ctx.addImport(source, null, null, stack.source);
-            }
-            importSource.setSourceTarget(asset);
-            importSource.setSourceContext(context);
-            if (graph) {
-              graph.addImport(importSource);
-            }
-          }
-        } else if (asset.type === "style") {
-          const { index, type, attrs = {} } = asset;
-          const lang = attrs.lang || attrs.type || "css";
-          const suffix = "file." + lang;
-          let source = this.getModuleResourceId(context, { ...attrs, index, type, lang, [suffix]: "" });
-          let _asset = this.createStyleAsset(source, index);
-          _asset.code = asset.content;
-          source = this.getAssetsImportSource(_asset, context);
-          let importSource = this.addImport(source);
-          importSource.setSourceTarget(asset);
-          importSource.setSourceContext(context);
-          graph.addImport(importSource);
-          graph.addAsset(_asset);
-        }
-      });
-    }
-  }
-  createRequires(context, graph) {
-    const requires = context.requires;
-    if (requires && requires.size > 0) {
-      requires.forEach((item) => {
-        this.createRequire(
-          context,
-          graph,
-          item.from,
-          item.name,
-          item.namespaced ? "*" : item.key
-        );
-      });
-    }
-  }
-  createRequire(context, graph, source, local, imported = null) {
-    if (source && !isExternalDependency(this.options.dependences.externals, source, context)) {
-      let specifiers = [{
-        local,
-        imported
-      }];
-      let target = source;
-      source = this.getImportAssetsMapping(source, {
-        group: "imports",
-        source,
-        specifiers,
-        context: this,
-        owner: context
-      });
-      if (source) {
-        let importSource = null;
-        if (specifiers.length > 0) {
-          specifiers.forEach((spec) => {
-            importSource = this.addImport(source, spec.local, spec.imported);
-          });
-        } else {
-          importSource = this.addImport(source);
-        }
-        if (importSource) {
-          importSource.setSourceTarget(target);
-          importSource.setSourceContext(context);
-        }
-        if (importSource && graph) {
-          graph.addImport(importSource);
-        }
-      }
-    }
-  }
-  crateModuleAssets(module2) {
-    if (!import_Utils16.default.isModule(module2)) return;
-    const graph = this.getBuildGraph(module2);
-    this.createAssets(module2, graph);
-    this.createRequires(module2, graph);
-  }
-  crateRootAssets() {
-    const compilation = this.target;
-    if (compilation) {
-      const graph = this.getBuildGraph(compilation);
-      this.createAssets(compilation, graph);
-      this.createRequires(compilation, graph);
-    }
-  }
-  createAllDependencies() {
-    const target = this.target;
-    const compilation = import_Utils16.default.isCompilation(target) ? target : null;
-    this.#dependencies.forEach((deps, moduleOrCompi) => {
-      const graph = this.getBuildGraph(moduleOrCompi);
-      deps.forEach((depModule) => {
-        if (depModule === target || compilation && compilation.modules.has(depModule.getName())) {
-          return;
-        }
-        if (moduleOrCompi !== depModule && this.isNeedBuild(depModule)) {
-          graph.addDepend(depModule);
-          if (!depModule.isDeclaratorModule || this.isVModule(depModule)) {
-            const name = this.getModuleReferenceName(depModule, moduleOrCompi);
-            const source = this.getModuleImportSource(depModule, moduleOrCompi);
-            const importSource = this.addImport(source, name);
-            importSource.setSourceTarget(depModule);
-            importSource.setSourceContext(moduleOrCompi);
-            graph.addImport(importSource);
-          } else if (depModule.isDeclaratorModule) {
-            this.createDeclaratorModuleImportReferences(depModule, moduleOrCompi, graph);
-          }
-        }
-      });
-    });
-  }
-  createModuleDependencies(module2) {
-    if (!import_Utils16.default.isModule(module2)) return;
-    let deps = this.getDependencies(module2);
-    if (!deps) return;
-    const graph = this.getBuildGraph(module2);
-    const compilation = module2.compilation;
-    deps.forEach((depModule) => {
-      if (compilation && compilation.modules && compilation.modules.has(depModule.getName())) {
-        return;
-      }
-      if (module2 !== depModule && this.isNeedBuild(depModule)) {
-        graph.addDepend(depModule);
-        if (!depModule.isDeclaratorModule || this.isVModule(depModule)) {
-          const name = this.getModuleReferenceName(depModule, module2);
-          const source = this.getModuleImportSource(depModule, module2);
-          const importSource = this.addImport(source, name);
-          importSource.setSourceTarget(depModule);
-          importSource.setSourceContext(module2);
-          graph.addImport(importSource);
-        } else if (depModule.isDeclaratorModule) {
-          this.createDeclaratorModuleImportReferences(depModule, module2, graph);
-        }
-      }
-    });
-  }
-  hasBuildGraph(module2) {
-    return hasBuildGraph(module2 || this.target);
-  }
-  getBuildGraph(module2 = null) {
-    let compilation = this.target;
-    if (!module2 || compilation === module2) {
-      return createBuildGraph(compilation);
-    }
-    if (import_Utils16.default.isModule(module2)) {
-      let mainModule = compilation.mainModule;
-      if (module2 === mainModule) {
-        return createBuildGraph(compilation, module2);
-      }
-      if (module2.isDeclaratorModule) {
-        const vm = getVModule(module2.getName());
-        if (vm) {
-          return createBuildGraph(vm);
-        }
-      }
-      let graph = createBuildGraph(module2, module2);
-      if (mainModule) {
-        let parent = createBuildGraph(compilation, mainModule);
-        parent.addChild(graph);
-      }
-      return graph;
-    } else {
-      if (isVModule(module2)) {
-        return createBuildGraph(module2, module2);
-      } else {
-        throw new Error("Exception module params");
-      }
-    }
-  }
-  getGlobalRefName(stack2, name, group = null) {
-    if (!stack2) {
-      stack2 = import_Utils16.default.isCompilation(this.target) ? this.target.stack : this;
-    }
-    if (group) {
-      let key = "getGlobalRefName:" + name;
-      if (has(group, key)) {
-        return get(group, key);
-      } else {
-        let value = hasRefs(stack2, name, true) ? genGlobalRefs(stack2, name) : getGlobalRefs(stack2, name);
-        set(group, key, value);
-        return value;
-      }
-    }
-    return getGlobalRefs(stack2, name);
-  }
-  getLocalRefName(stack2, name, group = null) {
-    if (!stack2) {
-      stack2 = import_Utils16.default.isCompilation(this.target) ? this.target.stack : this;
-    }
-    if (group) {
-      let key = "getLocalRefName:" + name;
-      if (has(group, key)) {
-        return get(group, key);
-      } else {
-        let value = hasRefs(stack2, name) ? genLocalRefs(stack2, name) : getLocalRefs(stack2, name);
-        set(group, key, value);
-        return value;
-      }
-    }
-    return getLocalRefs(stack2, name);
-  }
-  getImportAssetsMapping(file, options = {}) {
-    if (!options.group) {
-      options.group = "imports";
-    }
-    if (!options.delimiter) {
-      options.delimiter = "/";
-    }
-    return this.plugin.resolveImportSource(file, options);
-  }
-  getSourceFileMappingFolder(file, flag) {
-    const result = this.resolveSourceFileMappingPath(file, "folders");
-    return flag && !result ? file : result;
-  }
-  getModuleMappingFolder(module2) {
-    if (import_Utils16.default.isModule(module2)) {
-      return this.resolveSourceFileMappingPath(module2.getName("/") + ".module", "folders");
-    } else if (module2 && module2.file) {
-      return this.resolveSourceFileMappingPath(module2.file, "folders");
-    }
-    return null;
-  }
-  getAssetsImportSource(asset, context) {
-    let source = asset.sourceId;
-    if (this.options.emitFile) {
-      source = this.getRelativePath(
-        asset.getOutFile(this),
-        this.getOutputAbsolutePath(context)
-      );
-    }
-    return source;
-  }
-  getModuleImportSource(source, context, sourceId = null) {
-    const config = this.options;
-    const isString = typeof source === "string";
-    if (isString && isExternalDependency(this.options.dependences.externals, source, context)) {
-      return source;
-    }
-    if (isString && source.includes("${__filename}")) {
-      const owner = import_Utils16.default.isModule(context) ? context.compilation : context;
-      source = source.replace("${__filename}", import_Utils16.default.isCompilation(owner) ? owner.file : this.target.file);
-    }
-    if (isString && source.includes("/node_modules/")) {
-      if (import_path2.default.isAbsolute(source)) return source;
-      if (!sourceId) {
-        return this.resolveSourceFileMappingPath(source, "imports") || source;
-      }
-      return sourceId;
-    }
-    if (isString && !import_path2.default.isAbsolute(source)) {
-      return source;
-    }
-    if (config.emitFile) {
-      return this.getOutputRelativePath(source, context);
-    }
-    return isString ? source : this.getModuleResourceId(source);
-  }
-  getModuleResourceId(module2, query = {}) {
-    return this.compiler.parseResourceId(module2, query);
-  }
-  resolveSourceFileMappingPath(file, group, delimiter = "/") {
-    return this.plugin.resolveSourceId(file, group, delimiter);
-  }
-  genUniFileName(source, suffix = null) {
-    source = String(source);
-    let query = source.includes("?");
-    if (import_path2.default.isAbsolute(source) || query) {
-      let file = source;
-      if (query) {
-        file = source.split("?")[0];
-      }
-      let ext = import_path2.default.extname(file);
-      suffix = suffix || ext;
-      return import_path2.default.basename(file, ext) + "-" + (0, import_crypto2.createHash)("sha256").update(source).digest("hex").substring(0, 8) + suffix;
-    }
-    return source;
-  }
-  getOutputDir() {
-    return this.options.output || ".output";
-  }
-  getOutputExtName() {
-    return this.options.outext || ".js";
-  }
-  getOutputAbsolutePath(source, context) {
-    const isStr = typeof source === "string";
-    const output = this.getOutputDir();
-    const suffix = this.getOutputExtName();
-    if (!source) return output;
-    if (has(source, "Context.getOutputAbsolutePath")) {
-      return get(source, "Context.getOutputAbsolutePath");
-    }
-    let folder = isStr ? this.getSourceFileMappingFolder(source) : this.getModuleMappingFolder(source);
-    let filename = null;
-    if (isStr) {
-      filename = folder ? import_path2.default.basename(source) : this.compiler.getRelativeWorkspacePath(source, true) || this.genUniFileName(source);
-    } else {
-      if (import_Utils16.default.isModule(source)) {
-        if (source.isDeclaratorModule) {
-          const vm = getVModule(source.getName()) || source;
-          filename = folder ? vm.id : vm.getName("/");
-        } else {
-          filename = folder ? source.id : source.getName("/");
-        }
-      } else if (isVModule(source)) {
-        filename = folder ? source.id : source.getName("/");
-      } else if (source.file) {
-        filename = folder ? import_path2.default.basename(source.file) : this.compiler.getRelativeWorkspacePath(source.file) || this.genUniFileName(source.file);
-      }
-    }
-    if (!filename) {
-      throw new Error("File name not resolved correctly");
-    }
-    let info = import_path2.default.parse(filename);
-    if (!info.ext || this.compiler.isExtensionName(info.ext)) {
-      filename = import_path2.default.join(info.dir, info.name + suffix);
-    }
-    let result = null;
-    if (folder) {
-      result = import_Utils16.default.normalizePath(
-        import_path2.default.resolve(
-          import_path2.default.isAbsolute(folder) ? import_path2.default.join(folder, filename) : import_path2.default.join(output, folder, filename)
-        )
-      );
-    } else {
-      result = import_Utils16.default.normalizePath(
-        import_path2.default.resolve(
-          import_path2.default.join(output, filename)
-        )
-      );
-    }
-    if (result.includes("?")) {
-      result = import_path2.default.join(import_path2.default.dirname(result), this.genUniFileName(result, import_path2.default.extname(result)));
-    }
-    set(source, "Context.getOutputAbsolutePath", result);
-    return result;
-  }
-  getOutputRelativePath(source, context) {
-    return this.getRelativePath(
-      this.getOutputAbsolutePath(source),
-      this.getOutputAbsolutePath(context)
-    );
-  }
-  getRelativePath(source, context) {
-    return "./" + import_Utils16.default.normalizePath(
-      import_path2.default.relative(
-        import_path2.default.dirname(context),
-        source
-      )
-    );
-  }
-  getVNodeApi(name) {
-    let local = this.getGlobalRefName(null, name);
-    this.addImport("vue", local, name);
-    return local;
-  }
-  async emit(buildGraph) {
-    let outfile = buildGraph.outfile;
-    import_fs2.default.mkdirSync(import_path2.default.dirname(outfile), { recursive: true });
-    import_fs2.default.writeFileSync(outfile, buildGraph.code);
-    let sourcemap = buildGraph.sourcemap;
-    if (sourcemap) {
-      import_fs2.default.writeFileSync(outfile + ".map", JSON.stringify(sourcemap.toJSON()));
-    }
-  }
-  error(message, stack2 = null) {
-    if (this.target) {
-      let range = stack2 && stack2 instanceof import_Range.default ? stack2 : null;
-      if (!range && import_Utils16.default.isStack(stack2)) {
-        range = this.target.getRangeByNode(stack2.node);
-      }
-      const file = this.target.file;
-      if (range) {
-        message += ` (${file}:${range.start.line}:${range.start.column})`;
-      } else {
-        message += `(${file})`;
-      }
-    }
-    import_Utils16.default.error(message);
-  }
-  warn(message, stack2 = null) {
-    if (this.target) {
-      let range = stack2 && stack2 instanceof import_Range.default ? stack2 : null;
-      if (!range && import_Utils16.default.isStack(stack2)) {
-        range = this.target.getRangeByNode(stack2.node);
-      }
-      const file = this.target.file;
-      if (range) {
-        message += ` (${file}:${range.start.line}:${range.start.column})`;
-      } else {
-        message += `(${file})`;
-      }
-    }
-    import_Utils16.default.warn(message);
-  }
-};
-var Context_default = Context;
+    records3.set(key, asset);
+  }
+  return {
+    createAsset,
+    createStyleAsset,
+    getStyleAsset,
+    getAsset,
+    setAsset,
+    getAssets
+  };
+}
 
 // lib/core/Builder.js
+var import_glob_path = __toESM(require("glob-path"));
 async function buildProgram(ctx2, compilation) {
   let root = compilation.stack;
   if (!root) {
@@ -8204,414 +8525,132 @@ async function buildProgram(ctx2, compilation) {
   }
   return graph;
 }
-async function buildAssets(ctx2, buildGraph) {
+async function buildAssets(ctx2, buildGraph, emitFile) {
   let assets = buildGraph.assets;
   if (!assets) return;
   await Promise.all(
     Array.from(assets.values()).map((asset) => asset.build(ctx2))
   );
 }
-function createBuilder(plugin2) {
-  const buildContext = (records5 = /* @__PURE__ */ new Map(), options = {}) => {
-    const builder = async (compiOrVModule) => {
-      if (records5.has(compiOrVModule)) {
-        return records5.get(compiOrVModule);
-      }
-      let buildGraph = null;
-      let ctx2 = new Context_default(plugin2, compiOrVModule);
-      ctx2.setBuildOptions(options);
-      if (isVModule(compiOrVModule)) {
-        buildGraph = await compiOrVModule.build(ctx2);
-      } else {
-        if (!compiOrVModule.parserDoneFlag) {
-          await compiOrVModule.ready();
-        }
-        buildGraph = await buildProgram(ctx2, compiOrVModule);
-      }
-      records5.set(compiOrVModule, buildGraph);
-      if (ctx2.options.emitFile) {
-        const deps = ctx2.getAllDependencies();
-        const vms = /* @__PURE__ */ new Set();
-        const compilations = /* @__PURE__ */ new Set();
-        deps.forEach((dep) => {
-          if (ctx2.isVModule(dep)) {
-            if (dep.isDeclaratorModule) {
-              dep = getVModule(dep.getName());
-            }
-            if (dep) {
-              buildGraph.addDepend(dep);
-              vms.add(dep);
-            }
-          } else if (import_Utils17.default.isModule(dep)) {
-            if (dep.isStructTable) {
-              dep.getStacks().forEach((stack2) => {
-                ctx2.createToken(stack2);
-              });
-            } else if (!dep.isDeclaratorModule) {
-              buildGraph.addDepend(dep);
-              compilations.add(dep.compilation);
-            }
-          }
-        });
-        const fragments = ctx2.getFragments();
-        if (fragments) {
-          fragments.forEach((compi) => compilations.add(compi));
-        }
-        await Promise.all(
-          Array.from(compilations.values()).map((compi) => builder(compi))
-        );
-        await Promise.all(
-          Array.from(vms.values()).map((vm) => builder(vm))
-        );
-        await ctx2.emit(buildGraph);
-      } else {
-        const deps = ctx2.getAllDependencies();
-        deps.forEach((dep) => {
-          if (ctx2.isVModule(dep)) {
-            if (dep.isDeclaratorModule) {
-              dep = getVModule(dep.getName());
-            }
-            if (dep) {
-              buildGraph.addDepend(dep);
-            }
-          } else if (import_Utils17.default.isModule(dep)) {
-            if (dep.isStructTable) {
-              dep.getStacks().forEach((stack2) => {
-                ctx2.createToken(stack2);
-              });
-            } else if (!dep.isDeclaratorModule) {
-              buildGraph.addDepend(dep);
-            }
-          }
-        });
-      }
-      await buildAssets(ctx2, buildGraph);
-      return buildGraph;
-    };
-    return builder;
-  };
-  return buildContext;
-}
-
-// lib/core/Asset.js
-var import_path3 = __toESM(require("path"));
-var import_fs3 = __toESM(require("fs"));
-var Asset = class {
-  #code = "";
-  #type = "";
-  #file = null;
-  #sourcemap = null;
-  #local = null;
-  #imported = null;
-  #sourceId = null;
-  #outfile = null;
-  #id = null;
-  #changed = true;
-  constructor(sourceFile, type, id = null) {
-    this.#type = type;
-    this.#file = sourceFile;
-    this.#sourceId = sourceFile;
-    this.#id = id;
-  }
-  get code() {
-    let code = this.#code;
-    if (code) return code;
-    let file = this.file;
-    if (file && import_fs3.default.existsSync(file)) {
-      this.#code = import_fs3.default.readFileSync(file).toString("utf8");
+function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
+  let assets = getAssetsManager(Asset);
+  let virtuals = getVirtualModuleManager(VirtualModule);
+  let variables = getVariableManager();
+  let graphs = getBuildGraphManager();
+  let cache = getCacheManager();
+  let glob = null;
+  let resolve = plugin2.options.resolve || {};
+  let imports = resolve?.imports || {};
+  Object.keys(imports).forEach((key) => {
+    glob = glob || (glob = new import_glob_path.default());
+    glob.addRuleGroup(key, imports[key], "imports");
+  });
+  let folders = resolve?.folders || {};
+  Object.keys(folders).forEach((key) => {
+    glob = glob || (glob = new import_glob_path.default());
+    glob.addRuleGroup(key, folders[key], "folders");
+  });
+  const builder = async (compiOrVModule) => {
+    if (records3.has(compiOrVModule)) {
+      return records3.get(compiOrVModule);
     }
-    return this.#code;
-  }
-  set code(value) {
-    this.#code = value;
-    this.#changed = true;
-  }
-  get id() {
-    return this.#id;
-  }
-  set id(value) {
-    this.#id = value;
-  }
-  get local() {
-    return this.#local;
-  }
-  set local(value) {
-    this.#local = value;
-  }
-  get imported() {
-    return this.#imported;
-  }
-  set imported(value) {
-    this.#imported = value;
-  }
-  get file() {
-    return this.#file;
-  }
-  set file(value) {
-    this.#file = value;
-  }
-  get sourceId() {
-    return this.#sourceId;
-  }
-  set sourceId(value) {
-    this.#sourceId = value;
-  }
-  get type() {
-    return this.#type;
-  }
-  get sourcemap() {
-    return this.#sourcemap;
-  }
-  set sourcemap(value) {
-    this.#sourcemap = value;
-  }
-  getOutFile(ctx2) {
-    if (this.#outfile) return this.#outfile;
-    let source = ctx2.getOutputAbsolutePath(this.sourceId);
-    let ext = ctx2.getOutputExtName();
-    if (!source.endsWith(ext)) {
-      source += ext;
-    }
-    this.#outfile = source;
-    return source;
-  }
-  async build(ctx2) {
-    if (!this.#changed) return;
-    this.#changed = false;
-    if (ctx2.options.emitFile) {
-      let code = this.code;
-      if (ctx2.options.module === "cjs") {
-        code = `module.exports=${JSON.stringify(code)};`;
-      } else {
-        code = `export default ${JSON.stringify(code)};`;
-      }
-      let outfile = this.getOutFile(ctx2);
-      import_fs3.default.mkdirSync(import_path3.default.dirname(outfile), { recursive: true });
-      import_fs3.default.writeFileSync(outfile, code);
-    }
-  }
-};
-function createAssets(AssetFactory) {
-  const records5 = /* @__PURE__ */ new Map();
-  function createAsset(sourceFile, id = null, type = null) {
-    if (!type) {
-      type = import_path3.default.extname(sourceFile);
-      if (type.startsWith(".")) {
-        type = type.substring(1);
-      }
+    let buildGraph = null;
+    let ctx2 = new Context_default(
+      compiOrVModule,
+      plugin2,
+      variables,
+      graphs,
+      assets,
+      virtuals,
+      glob,
+      cache
+    );
+    if (isVModule(compiOrVModule)) {
+      buildGraph = await compiOrVModule.build(ctx2);
     } else {
-      type = String(type);
+      if (!compiOrVModule.parserDoneFlag) {
+        await compiOrVModule.ready();
+      }
+      buildGraph = await buildProgram(ctx2, compiOrVModule);
     }
-    let key = sourceFile + ":" + type;
-    if (id != null) {
-      key = sourceFile + ":" + id + ":" + type;
+    records3.set(compiOrVModule, buildGraph);
+    if (ctx2.options.emitFile) {
+      const deps = ctx2.getAllDependencies();
+      const vms = /* @__PURE__ */ new Set();
+      const compilations = /* @__PURE__ */ new Set();
+      deps.forEach((dep) => {
+        if (ctx2.isVModule(dep)) {
+          if (dep.isDeclaratorModule) {
+            dep = ctx2.getVModule(dep.getName());
+          }
+          if (dep) {
+            buildGraph.addDepend(dep);
+            vms.add(dep);
+          }
+        } else if (import_Utils17.default.isModule(dep)) {
+          if (dep.isStructTable) {
+            dep.getStacks().forEach((stack2) => {
+              ctx2.createToken(stack2);
+            });
+          } else if (!dep.isDeclaratorModule) {
+            buildGraph.addDepend(dep);
+            compilations.add(dep.compilation);
+          }
+        }
+      });
+      const fragments = ctx2.getFragments();
+      if (fragments) {
+        fragments.forEach((compi) => compilations.add(compi));
+      }
+      await Promise.all(
+        Array.from(compilations.values()).map((compi) => builder(compi))
+      );
+      await Promise.all(
+        Array.from(vms.values()).map((vm) => builder(vm))
+      );
+      await ctx2.emit(buildGraph);
+      await buildAssets(ctx2, buildGraph, true);
+    } else {
+      const deps = ctx2.getAllDependencies();
+      deps.forEach((dep) => {
+        if (ctx2.isVModule(dep)) {
+          if (dep.isDeclaratorModule) {
+            dep = ctx2.getVModule(dep.getName());
+          }
+          if (dep) {
+            buildGraph.addDepend(dep);
+          }
+        } else if (import_Utils17.default.isModule(dep)) {
+          if (dep.isStructTable) {
+            dep.getStacks().forEach((stack2) => {
+              ctx2.createToken(stack2);
+            });
+          } else if (!dep.isDeclaratorModule) {
+            buildGraph.addDepend(dep);
+          }
+        }
+      });
+      await buildAssets(ctx2, buildGraph);
     }
-    let asset = records5.get(key);
-    if (!asset) {
-      records5.set(sourceFile, asset = new AssetFactory(sourceFile, type, id));
-    }
-    return asset;
-  }
-  function createStyleAsset(sourceFile, id = null) {
-    return createAsset(sourceFile, id, "style");
-  }
-  function getAsset(sourceFile, id = null, type = "") {
-    let key = sourceFile + ":" + type;
-    if (id) {
-      key = sourceFile + ":" + id + ":" + type;
-    }
-    return records5.get(key);
-  }
-  function getStyleAsset(sourceFile, id = null) {
-    return getAsset(sourceFile, id, "style");
-  }
-  function getAssets() {
-    return Array.from(records5.values());
-  }
+    return buildGraph;
+  };
   return {
-    createAsset,
-    createStyleAsset,
-    getStyleAsset,
-    getAsset,
-    getAssets
+    builder,
+    assets,
+    virtuals,
+    variables,
+    graphs,
+    glob
   };
 }
-
-// lib/core/Plugin.js
-function defineError(complier) {
-  if (defineError.loaded || !complier || !complier.diagnostic) return;
-  defineError.loaded = true;
-  let define = complier.diagnostic.defineError;
-  define(1e4, "", [
-    "\u7ED1\u5B9A\u7684\u5C5E\u6027(%s)\u5FC5\u987B\u662F\u4E00\u4E2A\u53EF\u8D4B\u503C\u7684\u6210\u5458\u5C5E\u6027",
-    "Binding the '%s' property must be an assignable members property"
-  ]);
-  define(10101, "", [
-    "\u8DEF\u7531\u53C2\u6570(%s)\u7684\u9ED8\u8BA4\u503C\u53EA\u80FD\u662F\u4E00\u4E2A\u6807\u91CF",
-    "Route params the '%s' defalut value can only is a literal type."
-  ]);
-}
-var plugins = /* @__PURE__ */ new Set();
-var Plugin = class _Plugin {
-  static is(value) {
-    return value ? value instanceof _Plugin : false;
-  }
-  #name = null;
-  #version = "0.0.0";
-  #records = /* @__PURE__ */ new Map();
-  #options = null;
-  #initialized = false;
-  #builder = null;
-  #complier = null;
-  #assets = null;
-  #glob = new import_glob_path.default();
-  constructor(name, version, options = {}) {
-    plugins.add(this);
-    this.#name = name;
-    this.#version = version;
-    this.#options = options;
-    this.resolveRules();
-    this.#builder = createBuilder(this);
-    this.#assets = createAssets(Asset);
-    if (options.mode) {
-      options.metadata.env.NODE_ENV = options.mode;
-    }
-  }
-  get name() {
-    return this.#name;
-  }
-  get options() {
-    return this.#options;
-  }
-  get version() {
-    return this.#version;
-  }
-  get assets() {
-    return this.#assets;
-  }
-  getComplier() {
-    return this.#complier;
-  }
-  resolveRules() {
-    const resolve = this.options.resolve || {};
-    const imports = resolve?.imports || {};
-    Object.keys(imports).forEach((key) => {
-      this.#glob.addRuleGroup(key, imports[key], "imports");
-    });
-    const folders = resolve?.folders || {};
-    Object.keys(folders).forEach((key) => {
-      this.#glob.addRuleGroup(key, folders[key], "folders");
-    });
-  }
-  resolveImportSource(id, ctx2 = {}) {
-    const scheme = this.#glob.scheme(id, ctx2);
-    let source = this.#glob.parse(scheme, ctx2);
-    let rule = scheme.rule;
-    if (!rule) {
-      source = id;
-    }
-    return source;
-  }
-  resolveSourceId(id, group, delimiter = "/") {
-    let data = { group, delimiter, failValue: null };
-    if (typeof group === "object") {
-      data = group;
-    }
-    return this.#glob.dest(id, data);
-  }
-  init(complier) {
-    if (!this.#initialized) {
-      this.#initialized = true;
-      defineError(complier);
-      if (this.options.mode === "development") {
-        let tableBuilders = null;
-        complier.on("onChanged", (compilation) => {
-          this.#records.delete(compilation);
-          let mainModule = compilation.mainModule;
-          if (mainModule.isStructTable) {
-            tableBuilders = tableBuilders || getAllBuilder();
-            compilation.modules.forEach((module2) => {
-              if (module2.isStructTable) {
-                tableBuilders.forEach((builder) => {
-                  builder.removeTable(module2.id);
-                });
-              }
-            });
-          }
-        });
-      }
-      this.#complier = complier;
-    }
-  }
-  done() {
-  }
-  async build(compilation, options = {}) {
-    if (!import_Compilation.default.is(compilation)) {
-      throw new Error("compilation is invalid");
-    }
-    if (!this.#initialized) {
-      this.init(compilation.complier);
-    }
-    const builder = this.#builder(this.#records, options);
-    if (options.moduleId) {
-      compilation = getVModule(options.moduleId);
-      if (!compilation) {
-        throw new Error(`The '${options.moduleId}' virtual module does not exists.`);
-      }
-    }
-    return await builder(compilation);
-  }
-};
-var Plugin_default = Plugin;
-
-// package.json
-var package_default = {
-  name: "@easescript/transform",
-  version: "0.0.5",
-  description: "Code Transform Based For EaseScript Plugin",
-  main: "dist/index.js",
-  scripts: {
-    dev: "npm run build && jasmine ./test/index.js",
-    run: "jasmine ./test/.output/Test.js",
-    test: "npm run dev & npm run run",
-    build: "node ./scripts/build.js"
-  },
-  repository: {
-    type: "git",
-    url: "git+https://github.com/51breeze/es-transform.git"
-  },
-  keywords: [
-    "EaseScript"
-  ],
-  author: "Jun Ye",
-  license: "MIT",
-  bugs: {
-    url: "https://github.com/51breeze/es-transform/issues"
-  },
-  homepage: "https://github.com/51breeze/es-transform#readme",
-  dependencies: {
-    easescript: "latest",
-    "glob-path": "latest",
-    lodash: "^4.17.21",
-    "source-map": "^0.7.4"
-  },
-  devDependencies: {
-    easescript: "latest",
-    "easescript-cli": "^0.1.3",
-    esbuild: "^0.24.0",
-    "esbuild-plugin-copy": "^2.1.1",
-    jasmine: "^3.10.0"
-  }
-};
 
 // lib/core/Polyfill.js
-var import_fs4 = __toESM(require("fs"));
+var import_fs5 = __toESM(require("fs"));
 var import_path4 = __toESM(require("path"));
 var TAGS_REGEXP = /(?:[\r\n]+|^)\/\/\/(?:\s+)?<(references|namespaces|export|import)\s+(.*?)\/>/g;
 var ATTRS_REGEXP = /(\w+)(?:[\s+]?=[\s+]?([\'\"])([^\2]*?)\2)?/g;
-var _createVModule = createVModule;
-function parsePolyfillModule(file, createVModule2) {
-  let content = import_fs4.default.readFileSync(file).toString();
+function parsePolyfillModule(file, createVModule) {
+  let content = import_fs5.default.readFileSync(file).toString();
   let references = [];
   let namespace = "";
   let requires = [];
@@ -8659,7 +8698,7 @@ function parsePolyfillModule(file, createVModule2) {
   });
   const info = import_path4.default.parse(file);
   let id = namespace ? `${namespace}.${info.name}` : info.name;
-  let vm = createVModule2(id);
+  let vm = createVModule(id);
   requires.forEach((item) => {
     const local = item.local ? item.local : import_path4.default.parse(item.from).name;
     vm.addImport(item.from, local, item.imported);
@@ -8676,22 +8715,162 @@ function parsePolyfillModule(file, createVModule2) {
   }
   vm.setContent(content);
 }
-function createPolyfillModule(dirname) {
+function createPolyfillModule(dirname, createVModule) {
   if (!import_path4.default.isAbsolute(dirname)) {
     dirname = import_path4.default.join(__dirname, dirname);
   }
-  if (!import_fs4.default.existsSync(dirname)) {
+  if (!import_fs5.default.existsSync(dirname)) {
     throw new Error(`Polyfills directory does not exists. on '${dirname}'`);
   }
-  import_fs4.default.readdirSync(dirname).forEach((filename) => {
+  import_fs5.default.readdirSync(dirname).forEach((filename) => {
     const filepath2 = import_path4.default.join(dirname, filename);
-    if (import_fs4.default.statSync(filepath2).isFile()) {
-      parsePolyfillModule(filepath2, _createVModule);
-    } else if (import_fs4.default.statSync(filepath2).isDirectory()) {
-      createPolyfillModule(filepath2);
+    if (import_fs5.default.statSync(filepath2).isFile()) {
+      parsePolyfillModule(filepath2, createVModule);
+    } else if (import_fs5.default.statSync(filepath2).isDirectory()) {
+      createPolyfillModule(filepath2, createVModule);
     }
   });
 }
+
+// lib/core/Plugin.js
+function defineError(complier) {
+  if (defineError.loaded || !complier || !complier.diagnostic) return;
+  defineError.loaded = true;
+  let define = complier.diagnostic.defineError;
+  define(1e4, "", [
+    "\u7ED1\u5B9A\u7684\u5C5E\u6027(%s)\u5FC5\u987B\u662F\u4E00\u4E2A\u53EF\u8D4B\u503C\u7684\u6210\u5458\u5C5E\u6027",
+    "Binding the '%s' property must be an assignable members property"
+  ]);
+  define(10101, "", [
+    "\u8DEF\u7531\u53C2\u6570(%s)\u7684\u9ED8\u8BA4\u503C\u53EA\u80FD\u662F\u4E00\u4E2A\u6807\u91CF",
+    "Route params the '%s' defalut value can only is a literal type."
+  ]);
+}
+var plugins = /* @__PURE__ */ new Set();
+var Plugin = class _Plugin {
+  static is(value) {
+    return value ? value instanceof _Plugin : false;
+  }
+  #name = null;
+  #version = "0.0.0";
+  #records = null;
+  #options = null;
+  #initialized = false;
+  #context = null;
+  #complier = null;
+  constructor(name, version, options = {}) {
+    plugins.add(this);
+    this.#name = name;
+    this.#version = version;
+    this.#options = options;
+    if (options.mode) {
+      options.metadata.env.NODE_ENV = options.mode;
+    }
+  }
+  get name() {
+    return this.#name;
+  }
+  get options() {
+    return this.#options;
+  }
+  get version() {
+    return this.#version;
+  }
+  get complier() {
+    return this.#complier;
+  }
+  get context() {
+    return this.#context;
+  }
+  init(complier) {
+    if (this.#initialized) return;
+    this.#initialized = true;
+    this.#complier = complier;
+    this.#records = /* @__PURE__ */ new Map();
+    defineError(complier);
+    if (this.options.mode === "development") {
+      let tableBuilders = null;
+      complier.on("onChanged", (compilation) => {
+        this.#records.delete(compilation);
+        let mainModule = compilation.mainModule;
+        if (mainModule.isStructTable) {
+          tableBuilders = tableBuilders || getAllBuilder();
+          compilation.modules.forEach((module2) => {
+            if (module2.isStructTable) {
+              tableBuilders.forEach((builder) => {
+                builder.removeTable(module2.id);
+              });
+            }
+          });
+        }
+      });
+    }
+    let context = createBuildContext(this, this.#records);
+    this.#context = context;
+    createPolyfillModule(
+      import_path5.default.join(__dirname, "./polyfills"),
+      context.virtuals.createVModule
+    );
+  }
+  done() {
+  }
+  async build(compilation, moduleId) {
+    if (!import_Compilation.default.is(compilation)) {
+      throw new Error("compilation is invalid");
+    }
+    if (!this.#initialized) {
+      this.init(compilation.complier);
+    }
+    if (moduleId) {
+      compilation = this.#context.virtuals.getVModule(moduleId);
+      if (!compilation) {
+        throw new Error(`The '${moduleId}' virtual module does not exists.`);
+      }
+    }
+    return await this.#context.builder(compilation);
+  }
+};
+var Plugin_default = Plugin;
+
+// package.json
+var package_default = {
+  name: "@easescript/transform",
+  version: "0.0.6",
+  description: "Code Transform Based For EaseScript Plugin",
+  main: "dist/index.js",
+  scripts: {
+    dev: "npm run build && jasmine ./test/index.js",
+    run: "jasmine ./test/.output/Test.js",
+    test: "npm run dev & npm run run",
+    build: "node ./scripts/build.js"
+  },
+  repository: {
+    type: "git",
+    url: "git+https://github.com/51breeze/es-transform.git"
+  },
+  keywords: [
+    "EaseScript"
+  ],
+  author: "Jun Ye",
+  license: "MIT",
+  bugs: {
+    url: "https://github.com/51breeze/es-transform/issues"
+  },
+  homepage: "https://github.com/51breeze/es-transform#readme",
+  dependencies: {
+    easescript: "latest",
+    "glob-path": "latest",
+    lodash: "^4.17.21",
+    "source-map": "^0.7.4"
+  },
+  devDependencies: {
+    easescript: "latest",
+    "easescript-cli": "^0.1.3",
+    esbuild: "^0.24.0",
+    "esbuild-plugin-copy": "^2.1.1",
+    jasmine: "^3.10.0"
+  }
+};
 
 // lib/index.js
 var defaultConfig = {
@@ -8701,7 +8880,6 @@ var defaultConfig = {
   outext: ".js",
   strict: true,
   babel: false,
-  ns: "core",
   hot: false,
   sourceMaps: false,
   routePathWithNamespace: {
@@ -8771,12 +8949,7 @@ function getOptions(options = {}) {
     options
   );
 }
-var initialized = false;
 function plugin(options = {}) {
-  if (!initialized) {
-    initialized = true;
-    createPolyfillModule(import_path5.default.join(__dirname, "./polyfills"));
-  }
   return new Plugin_default(
     package_default.name,
     package_default.version,
@@ -8786,6 +8959,6 @@ function plugin(options = {}) {
 var lib_default = plugin;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  getOptions,
-  plugin
+  Plugin,
+  getOptions
 });
