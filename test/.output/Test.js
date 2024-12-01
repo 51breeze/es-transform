@@ -1,4 +1,4 @@
-require("./assets/style.css.js");
+require("./asstes/assets/style.js");
 const Class = require("./Class.js");
 const config = Class.getExportDefault(require("./config.js"));
 const {name,child_name,child_config,name:php} = require("./config.js");

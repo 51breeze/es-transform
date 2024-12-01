@@ -10,7 +10,6 @@ class Creator {
             debug:false,
             diagnose:true,
             autoLoadDescribeFile:true,
-            output:path.join(__dirname,"./build"),
             workspace:path.join(__dirname,"./src"),
             parser:{
                 locations:true
@@ -20,8 +19,8 @@ class Creator {
         this.plugin = plugin({
             emitFile:true,
             //sourceMaps:true,
-            outext:'.js',
-            output:'test/.output',
+            outExt:'.js',
+            outDir:'test/.output',
             mode:'development',
             metadata:{
                 env:{NODE_ENV:'development'},
