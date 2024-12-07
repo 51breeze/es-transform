@@ -37,7 +37,6 @@ function merge(obj, target, isInstance=false, depth=false){
         merge(Reflect.getPrototypeOf(obj), target, isInstance, depth);
     }
 }
-
 function getDescriptor(obj, name){
     if( !obj )return null;
     const desc = Reflect.getOwnPropertyDescriptor(obj, name);
@@ -45,7 +44,6 @@ function getDescriptor(obj, name){
     if(_proto===obj || obj===Object || obj===Function)return;
     return getDescriptor( Reflect.getPrototypeOf(obj), name);
 }
-
 const datasetSymbols = Object.create(null);
 const Class={
     key:privateKey,
@@ -79,7 +77,6 @@ const Class={
             throw new ReferenceError(`'super.${methodName}' setter is not exists.`)
         }
     },
-
     callSuperGetter(moduleClass, thisArg, methodName){
         const method = this.getSuperMethod(moduleClass, methodName, 'getter');
         if(method){
@@ -88,7 +85,6 @@ const Class={
             throw new ReferenceError(`'super.${methodName}' getter is not exists.`)
         }
     },
-
     isModifier(modifier, value){
         if(!(value > 0))return false;
         let mode = Class.constant[modifier];
@@ -97,7 +93,6 @@ const Class={
         }
         return (mode & value) === mode;
     },
-
     getSuperMethod(moduleClass, methodName, kind='method'){
         if(!moduleClass)return null;
         let descriptor = Class.getClassDescriptor(moduleClass);
@@ -144,7 +139,6 @@ const Class={
         }
         return null;
     },
-
     creator:function(moduleClass, descriptor){
         if(moduleClass && descriptor){
             if(!descriptor.name){
@@ -163,15 +157,12 @@ const Class={
                     merge(inherit, moduleClass);
                 }
             }
-
             if( descriptor.methods && !isInterface){
                 Object.defineProperties(moduleClass,descriptor.methods);
             }
-
             if( descriptor.members && !isInterface){
                 Object.defineProperties(moduleClass.prototype, descriptor.members);
             }
-
             Object.defineProperty(moduleClass,privateKey,{value:descriptor});
             if(!Object.hasOwnProperty.call(moduleClass,'name')){
                 Object.defineProperty(moduleClass,'name',{value:descriptor.name});
@@ -198,7 +189,6 @@ const Class={
                     }
                 });
             }
-
             Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
             __MODULES__[name] = moduleClass;
         }

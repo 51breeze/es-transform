@@ -10,12 +10,10 @@ class ClassDescriptor{
     static create(classModule, descriptor, members){
         return new ClassDescriptor(classModule, descriptor, members)
     }
-
     _classModule = null;
     _descriptor = null;
     _members = null;
     _label = 'unknown';
-
     constructor(classModule, descriptor, members=[]){
         this._classModule = classModule;
         this._descriptor = descriptor;
@@ -30,47 +28,36 @@ class ClassDescriptor{
             this._label = 'enum';
         }
     }
-
     get isClassDescriptor(){
         return true;
     }
-
     get mode(){
         return this._description.m || 0;
     }
-
     get descriptor(){
         return this._descriptor;
     }
-
     get classModule(){
         return this._classModule;
     }
-
     get label(){
         return this._label;
     }
-
     get className(){
         return this._description.name||'';
     }
-
     get namespace(){
         return this._description.namespace||'';
     }
-
     get implements(){
         return this._description.imps || [];
     }
-
     get inherit(){
         return this._description.inherit || null;
     }
-
     get members(){
         return this._members;
     }
-
     get permission(){
         let mode = this._description.m || 0;
         if((mode & _Reflect.MODIFIER_PRIVATE) === _Reflect.MODIFIER_PRIVATE){
@@ -80,57 +67,44 @@ class ClassDescriptor{
         }
         return 'public';
     }
-
     isPrivate(){
         return 'private' === this.permission
     }
-
     isProtected(){
         return 'protected' === this.permission
     }
-
     isPublic(){
         return 'public' === this.permission
     }
-
     isStatic(){
         let mode = this._description.m || 0;
         return (mode & _Reflect.MODIFIER_STATIC) === _Reflect.MODIFIER_STATIC;
     }
-
     isFinal(){
         let mode = this._description.m || 0;
         return (mode & _Reflect.MODIFIER_FINAL) === _Reflect.MODIFIER_FINAL;
     }
-
     isAbsract(){
         let mode = this._description.m || 0;
         return (mode & _Reflect.MODIFIER_ABSTRACT) === _Reflect.MODIFIER_ABSTRACT;
     }
-
     isDynamic(){
         return !!this._description.dynamic;
     }
-
     isClass(){
         return this._label === 'class'
     }
-
     isInterface(){
         return this._label === 'interface'
     }
-
     isEnum(){
         return this._label === 'enum'
     }
 }
-
 class MemberDescriptor{
-
     static create(key, descriptor, target, owner=null, privateKey=null){
         return new MemberDescriptor(key, descriptor, target, owner, privateKey)
     }
-
     _key = null;
     _descriptor = null;
     _owner = null;
@@ -188,55 +162,42 @@ class MemberDescriptor{
             }
         }
     }
-
     get isMemberDescriptor(){
         return true;
     }
-
     get mode(){
         return this._descriptor.m || 0;
     }
-
     get descriptor(){
         return this._descriptor;
     }
-
     get key(){
         return this._key
     }
-
     get owner(){
         return this._owner;
     }
-
     get label(){
         return this._dataset.label;
     }
-
     get getter(){
        return this._dataset.get;
     }
-
     get setter(){
         return this._dataset.set;
     }
-
     get value(){
         return this._dataset.value;
     }
-
     get writable(){
         return !!this._dataset.writable;
     }
-
     get configurable(){
         return !!this._dataset.configurable;
     }
-
     get enumerable(){
         return !!this._dataset.enumerable;
     }
-
     get permission(){
         let mode = this._descriptor.m || 0;
         if((mode & _Reflect.MODIFIER_PRIVATE) === _Reflect.MODIFIER_PRIVATE){
@@ -246,54 +207,42 @@ class MemberDescriptor{
         }
         return 'public';
     }
-
     get privateKey(){
         return this._privateKey;
     }
-
     isPrivate(){
         return 'private' === this.permission
     }
-
     isProtected(){
         return 'protected' === this.permission
     }
-
     isPublic(){
         return 'public' === this.permission
     }
-
     isStatic(){
         let mode = this._descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_STATIC) === _Reflect.MODIFIER_STATIC;
     }
-
     isFinal(){
         let mode = this._descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_FINAL) === _Reflect.MODIFIER_FINAL;
     }
-
     isAbsract(){
         let mode = this._descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_ABSTRACT) === _Reflect.MODIFIER_ABSTRACT;
     }
-
     isMethod(){
         return this.label ==='method'
     }
-
     isAccessor(){
         return this.label ==='accessor'
     }
-
     isProperty(){
         return this.label ==='property'
     }
-
     isEnumProperty(){
         return this.label ==='enumProperty'
     }
-
     isClassMember(){
         let owner = this._owner;
         if(owner){
@@ -302,7 +251,6 @@ class MemberDescriptor{
         return false;
     }
 }
-
 const _Reflect = (function(_Reflect){
     const _construct = _Reflect ? _Reflect.construct : function construct(theClass, args, newTarget){
         if( !isFun(theClass) ){
@@ -333,7 +281,6 @@ const _Reflect = (function(_Reflect){
                 return Function('f,a', 'return new f(a[' + items.join('],a[') + ']);')(theClass, args);
         }
     };
-
     const _apply = _Reflect ? _Reflect.apply : function apply(target, thisArgument, argumentsList){
         if( typeof target !== "function" ){
             throw new TypeError('is not function');
@@ -347,26 +294,22 @@ const _Reflect = (function(_Reflect){
         }
         return target();
     };
-
     const hasOwn = Object.prototype.hasOwnProperty;
     function isFun(target){
         return target && target.constructor === Function
     }
-
     function isClass(objClass){
         if( !objClass || !objClass.constructor)return false;
         var desc = Class.getClassDescriptor(objClass);
         if( !desc )return isFun(objClass);
         return desc && (desc.m & Reflect.KIND_CLASS) === Reflect.KIND_CLASS;
     }
-
     function inContext(context,objClass){
         if(!context)return false;
         if(context===objClass)return true;
         const obj = Class.getClassDescriptor(context);
         return obj ? inContext(obj.inherit, objClass) : false;
     }
-
     function getObjectDescriptor(target, name, rawClass=null, mode=0){
         try{
             if(!target)return null;
@@ -401,7 +344,6 @@ const _Reflect = (function(_Reflect){
         }catch(e){}
         return null;
     }
-
     function getClassDescriptor(target){
         target = Object(target);
         let objClass = target;
@@ -414,15 +356,12 @@ const _Reflect = (function(_Reflect){
         }
         return {objClass,descriptor,isStatic,target};
     }
-
     function getModes(mode){
         return Object.keys(Class.constant).map(key=>Class.constant[key]).filter(val=>(mode & val) === val)
     }
-
     function Reflect(){ 
         throw new SyntaxError('Reflect is not constructor.');
     }
-
     Reflect.MODIFIER_PUBLIC = Class.constant.MODIFIER_PUBLIC;
     Reflect.MODIFIER_PROTECTED = Class.constant.MODIFIER_PROTECTED;
     Reflect.MODIFIER_PRIVATE = Class.constant.MODIFIER_PRIVATE;
@@ -437,7 +376,6 @@ const _Reflect = (function(_Reflect){
     Reflect.KIND_CLASS = Class.constant.KIND_CLASS;
     Reflect.KIND_INTERFACE = Class.constant.KIND_INTERFACE;
     Reflect.KIND_ENUM = Class.constant.KIND_ENUM;
-
     Reflect.apply=function apply(target, thisArgument, argumentsList ){
         if( !isFun(target) ){
             throw new TypeError('target is not function');
@@ -447,7 +385,6 @@ const _Reflect = (function(_Reflect){
         }
         return _apply(target, thisArgument, argumentsList);
     };
-
     Reflect.call=function call(scope,target,propertyKey,argumentsList,thisArgument){
         if( target == null )throw new ReferenceError('target is null or undefined');
         if( propertyKey==null ){
@@ -455,12 +392,10 @@ const _Reflect = (function(_Reflect){
         }
         return Reflect.apply( Reflect.get(scope,target,propertyKey), thisArgument||target, argumentsList);    
     };
-
     Reflect.construct=function construct(target, args, newTarget){
         if( !isClass(target) )throw new TypeError('target is not instantiable object.');
         return _construct(target, args || [], newTarget);
     };
-
     Reflect.deleteProperty=function deleteProperty(target, propertyKey){
         if( !target || propertyKey==null )return false;
         if( propertyKey==="__proto__")return false;
@@ -472,7 +407,6 @@ const _Reflect = (function(_Reflect){
         }
         return false;
     };
-
     Reflect.has=function has(target, propertyKey){
         if( propertyKey==null || target == null )return false;
         if( propertyKey==="__proto__")return false;
@@ -481,13 +415,10 @@ const _Reflect = (function(_Reflect){
         }
         return propertyKey in target;
     };
-
-
     Reflect.get=function get(scope,target,propertyKey,receiver){
         if( propertyKey===null ||  propertyKey === void 0)return target;
         if( propertyKey === '__proto__' )return null;
         if( target == null )throw new ReferenceError('target is null or undefined');
-
         const desc = Reflect.getDescriptor(target, propertyKey);
         if(!desc){
             let {descriptor} = getClassDescriptor(target)
@@ -501,12 +432,10 @@ const _Reflect = (function(_Reflect){
                 return target[propertyKey];
             }
         }
-
         receiver = !receiver && typeof target ==="object" ? target : null;
         if(typeof receiver !=="object" ){
             throw new ReferenceError(`Assignment receiver can only is an object.`);
         }
-
         let result = null;
         if(!desc.isClassMember()){
             if(desc.getter){
@@ -529,15 +458,12 @@ const _Reflect = (function(_Reflect){
         }
         return result === void 0 ? null : result;
     };
-
     Reflect.set=function(scope,target,propertyKey,value,receiver){
         if( target == null || propertyKey===null ||  propertyKey === void 0 ){
             throw new ReferenceError('target or propertyKey is null or undefined');
         }
-
         if( propertyKey === '__proto__' )return null;
         const desc = Reflect.getDescriptor(target, propertyKey);
-
         if(!desc){
             let {descriptor} = getClassDescriptor(target)
             if(descriptor){
@@ -550,12 +476,10 @@ const _Reflect = (function(_Reflect){
                 return target[propertyKey] = value;
             }
         }
-
         receiver = !receiver && typeof target ==="object" ? target : null;
         if(typeof receiver !=="object" ){
             throw new ReferenceError(`Assignment receiver can only is an object.`);
         }
-
         if( !desc.isClassMember() ){
             if(!desc.isProperty() && !(desc.setter || desc.writable)){
                 throw new ReferenceError(`target.${propertyKey} is readonly.`);
@@ -587,21 +511,18 @@ const _Reflect = (function(_Reflect){
         }
         return value;
     };
-
     Reflect.incre=function incre(scope,target,propertyKey,flag){
         const val = Reflect.get(scope,target,propertyKey);
         const result = val+1;
         Reflect.set(scope,target, propertyKey, result);
         return flag === true ? val : result;
     }
-
     Reflect.decre= function decre(scope,target, propertyKey,flag){
         const val = Reflect.get(scope,target, propertyKey);
         const result = val-1;
         Reflect.set(scope,target, propertyKey,result);
         return flag === true ? val : result;
     }
-
     
     
     Reflect.getDescriptor=function getDescriptor(source, name=null, mode=null){
@@ -637,7 +558,6 @@ const _Reflect = (function(_Reflect){
                 return getObjectDescriptor(target, name);
             }
         }
-
         const rawClass = objClass;
         const privateScope = objClass;
         if(name == null){
@@ -665,7 +585,6 @@ const _Reflect = (function(_Reflect){
                     });
                 }
             }
-
             if(isStatic || modeStatic){
                 if(descriptor.methods){
                     Object.keys(descriptor.methods).map( key=>{
@@ -717,13 +636,10 @@ const _Reflect = (function(_Reflect){
         }
         return null;
     };
-
     Reflect.getDescriptors=function getDescriptors(target, mode=null){
        return Reflect.getDescriptor(target, null, mode);
     }
-
     return Reflect;
-
 }(Reflect));
 Class.creator(_Reflect,{
     m:513,

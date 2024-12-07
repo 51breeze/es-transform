@@ -1919,6 +1919,41 @@ function createModuleReferenceNode(ctx, stack, className) {
     throw new Error(`References the '${className}' module is not exists`);
   }
 }
+function createCommentsNode(ctx, stack) {
+  const manifests = ctx.options.manifests || {};
+  const enable = ctx.options.comments;
+  if (stack.module && (enable || manifests.comments)) {
+    const result = stack.parseComments("Block");
+    if (result) {
+      if (manifests.comments && result.meta) {
+        let kind = "class";
+        if (stack.isMethodSetterDefinition) {
+          kind = "setter";
+        } else if (stack.isMethodGetterDefinition) {
+          kind = "getter";
+        } else if (stack.isMethodDefinition) {
+          kind = "method";
+        } else if (stack.isPropertyDefinition) {
+          kind = "property";
+        }
+        const vm = ctx.getVModule("manifest.Comments");
+        if (vm) {
+          let id = stack.module.getName();
+          ctx.addDepend(vm);
+          let key = stack.value() + ":" + kind;
+          if (kind === "class") key = "top";
+          vm.append(ctx, {
+            [id]: { [key]: result.meta }
+          });
+        }
+      }
+      if (enable && result.comments.length > 0) {
+        return ctx.createChunkExpression(["/**", ...result.comments, "**/"].join("\n"), true);
+      }
+    }
+  }
+  return null;
+}
 async function callAsyncSequence(items, asyncMethod) {
   if (!Array.isArray(items)) return false;
   if (items.length < 1) return false;
@@ -2412,10 +2447,18 @@ var Generator2 = class {
           if (token.newLine !== false) {
             this.newLine();
           }
-          this.withString(token.value);
-          const result = token.value.match(/[\r\n]+/g);
-          if (result) {
-            this.#line += result.length;
+          let lines = String(token.value).split(/[\r\n]+/);
+          lines.forEach((line, index) => {
+            this.withString(line);
+            if (token.semicolon && index < lines.length) {
+              this.withSemicolon();
+            }
+            if (index < lines.length && token.newLine !== false) {
+              this.newLine();
+            }
+          });
+          if (token.semicolon) {
+            this.withSemicolon();
           }
           if (token.newLine !== false) {
             this.newLine();
@@ -2600,6 +2643,11 @@ var Generator2 = class {
       case "MethodGetterDefinition":
       case "MethodSetterDefinition":
         {
+          if (token.comments) {
+            this.newLine();
+            this.make(token.comments);
+            this.newLine();
+          }
           let isNewLine = token.type === "FunctionDeclaration" || token.kind === "method" || token.kind === "get" || token.kind === "set";
           if (isNewLine && !disabledNewLine && !token.disabledNewLine) this.newLine();
           if (token.async) {
@@ -2628,6 +2676,11 @@ var Generator2 = class {
         break;
       case "FunctionExpression":
         this.addMapping(token);
+        if (token.comments) {
+          this.newLine();
+          this.make(token.comments);
+          this.newLine();
+        }
         if (token.async) {
           this.withString("async");
           this.withSpace();
@@ -2767,6 +2820,11 @@ var Generator2 = class {
         break;
       case "ObjectExpression":
         this.addMapping(token);
+        if (token.comments) {
+          this.newLine();
+          this.make(token.comments);
+          this.newLine();
+        }
         this.withBraceL();
         if (token.properties.length > 0) {
           this.newBlock();
@@ -2807,6 +2865,11 @@ var Generator2 = class {
         break;
       case "Property":
         this.addMapping(token);
+        if (token.comments) {
+          this.newLine();
+          this.make(token.comments);
+          this.newLine();
+        }
         if (token.computed) {
           this.withBracketL();
           this.make(token.key);
@@ -2821,6 +2884,11 @@ var Generator2 = class {
         break;
       case "PropertyDefinition":
         this.addMapping(token);
+        if (token.comments) {
+          this.newLine();
+          this.make(token.comments);
+          this.newLine();
+        }
         this.newLine();
         if (token.static) {
           this.withString("static");
@@ -2989,6 +3057,11 @@ var Generator2 = class {
         }
         break;
       case "ClassDeclaration": {
+        if (token.comments) {
+          this.newLine();
+          this.make(token.comments);
+          this.newLine();
+        }
         this.newLine();
         this.addMapping(token);
         this.withString("class");
@@ -3401,9 +3474,6 @@ var VirtualModule = class {
     }
     if (module2) {
       ctx.createDeclaratorModuleImportReferences(module2, module2, graph);
-    }
-    if (emitFile) {
-      await ctx.buildDeps();
     }
     ctx.createAllDependencies();
     graph.code = this.gen(ctx, graph, body).code;
@@ -5267,6 +5337,15 @@ var ClassBuilder = class {
       );
     }
     ctx.removeNode(this.stack);
+    if (this.construct) {
+      let exists = this.construct.comments;
+      let classComments = createCommentsNode(ctx, stack);
+      if (!exists) {
+        this.construct.comments = classComments;
+      } else if (exists && classComments) {
+        exists.value = classComments.value + "\n" + exists.value;
+      }
+    }
     let expressions = [
       this.construct,
       ...this.beforeBody,
@@ -5595,46 +5674,38 @@ var ClassBuilder = class {
       );
     }
     let isConfigurable = !!node.isConfigurable;
+    let createProperty = (key2, value, raw = null) => {
+      let node2 = ctx.createProperty(
+        ctx.createIdentifier(key2),
+        value
+      );
+      raw = raw || value;
+      if (raw.comments) {
+        node2.comments = raw.comments;
+        raw.comments = null;
+      }
+      return node2;
+    };
     if (node.isAccessor) {
       if (node.get) {
         if (node.get.isConfigurable) isConfigurable = true;
         node.get.disabledNewLine = true;
         delete node.get.static;
-        properties.push(
-          ctx.createProperty(
-            ctx.createIdentifier("get"),
-            node.get
-          )
-        );
+        properties.push(createProperty("get", node.get));
       }
       if (node.set) {
         if (node.set.isConfigurable) isConfigurable = true;
         node.set.disabledNewLine = true;
         delete node.set.static;
-        properties.push(
-          ctx.createProperty(
-            ctx.createIdentifier("set"),
-            node.set
-          )
-        );
+        properties.push(createProperty("set", node.set));
       }
     } else {
       if (node.type === "PropertyDefinition") {
         if (node.init) {
-          properties.push(
-            ctx.createProperty(
-              ctx.createIdentifier("value"),
-              node.init
-            )
-          );
+          properties.push(createProperty("value", node.init, node));
         }
       } else {
-        properties.push(
-          ctx.createProperty(
-            ctx.createIdentifier("value"),
-            node
-          )
-        );
+        properties.push(createProperty("value", node));
       }
     }
     if (isConfigurable) {
@@ -7958,6 +8029,7 @@ function MethodDefinition_default(ctx, stack, type) {
   node.kind = "method";
   node.isAbstract = !!stack.isAbstract;
   node.isFinal = !!stack.isFinal;
+  node.comments = createCommentsNode(ctx, stack, node);
   return node;
 }
 
@@ -8079,6 +8151,7 @@ function PropertyDefinition_default(ctx, stack) {
   node.dynamic = stack.dynamic;
   node.isAbstract = !!stack.isAbstract;
   node.isFinal = !!stack.isFinal;
+  node.comments = createCommentsNode(ctx, stack, node);
   return node;
 }
 
@@ -8582,9 +8655,6 @@ async function buildProgram(ctx, compilation, graph) {
       ctx.createToken(item);
     });
   }
-  if (emitFile) {
-    await ctx.buildDeps();
-  }
   ctx.crateRootAssets();
   ctx.createAllDependencies();
   let exportNodes = null;
@@ -8599,7 +8669,6 @@ async function buildProgram(ctx, compilation, graph) {
   imports.push(...importNodes, ...exportNodes.imports);
   body.push(...exportNodes.declares);
   exports2.push(...exportNodes.exports);
-  let generator = new Generator_default(ctx);
   let layout = [
     ...imports,
     ...ctx.beforeBody,
@@ -8609,6 +8678,7 @@ async function buildProgram(ctx, compilation, graph) {
     ...exports2
   ];
   if (layout.length > 0) {
+    let generator = new Generator_default(ctx);
     layout.forEach((item) => generator.make(item));
     graph.code = generator.code;
     graph.sourcemap = generator.sourceMap;
@@ -8682,7 +8752,7 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
     glob = glob || (glob = new import_glob_path.default());
     glob.addRuleGroup(key, folders[key], "folders");
   });
-  async function builder(compiOrVModule) {
+  async function build(compiOrVModule) {
     if (records3.has(compiOrVModule)) {
       return records3.get(compiOrVModule);
     }
@@ -8708,27 +8778,51 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
       await buildProgram(ctx, compiOrVModule, buildGraph);
     }
     if (ctx.options.emitFile) {
+      await buildAssets(ctx, buildGraph);
       await ctx.emit(buildGraph);
-      await buildAssets(ctx, buildGraph);
-    } else {
-      const deps = ctx.getAllDependencies();
-      deps.forEach((dep) => {
-        if (import_Utils18.default.isModule(dep) && dep.isStructTable) {
-          dep.getStacks().forEach((stack) => {
-            ctx.createToken(stack);
-          });
-        }
-      });
-      await buildAssets(ctx, buildGraph);
     }
     return buildGraph;
   }
-  async function buildDeps(ctx) {
+  async function buildDeps(compiOrVModule) {
+    if (records3.has(compiOrVModule)) {
+      return records3.get(compiOrVModule);
+    }
+    let ctx = new Context_default(
+      compiOrVModule,
+      plugin2,
+      variables,
+      graphs,
+      assets,
+      virtuals,
+      glob,
+      cache,
+      token
+    );
+    let buildGraph = ctx.getBuildGraph(compiOrVModule);
+    records3.set(compiOrVModule, buildGraph);
+    if (isVModule(compiOrVModule)) {
+      await compiOrVModule.build(ctx, buildGraph);
+    } else {
+      if (!compiOrVModule.parserDoneFlag) {
+        await compiOrVModule.ready();
+      }
+      await buildProgram(ctx, compiOrVModule, buildGraph);
+    }
+    if (ctx.options.emitFile) {
+      await buildAssets(ctx, buildGraph);
+      await ctx.emit(buildGraph);
+    }
+    await callAsyncSequence(getBuildDeps(ctx), async (dep) => {
+      await buildDeps(dep);
+    });
+    return buildGraph;
+  }
+  function getBuildDeps(ctx) {
     const deps = /* @__PURE__ */ new Set();
     ctx.dependencies.forEach((dataset) => {
       dataset.forEach((dep) => {
         if (import_Utils18.default.isModule(dep)) {
-          if (dep.isDeclaratorModule) {
+          if (!dep.isStructTable && dep.isDeclaratorModule) {
             dep = ctx.getVModule(dep.getName());
             if (dep) {
               deps.add(dep);
@@ -8743,13 +8837,12 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
         }
       });
     });
-    await callAsyncSequence(Array.from(deps.values()), async (dep) => {
-      await builder(dep);
-    });
+    return Array.from(deps.values());
   }
   return {
-    builder,
+    build,
     buildDeps,
+    getBuildDeps,
     buildAssets,
     assets,
     virtuals,
@@ -8883,22 +8976,28 @@ var Plugin = class _Plugin {
       options.metadata.env.NODE_ENV = options.mode;
     }
   }
+  //插件名
   get name() {
     return this.#name;
   }
+  //插件选项
   get options() {
     return this.#options;
   }
+  //插件版本
   get version() {
     return this.#version;
   }
+  //编译器对象
   get complier() {
     return this.#complier;
   }
+  //用于构建的上下文对象
   get context() {
     return this.#context;
   }
-  init(complier) {
+  //构建前调用
+  async init(complier) {
     if (this.#initialized) return;
     this.#initialized = true;
     this.#complier = complier;
@@ -8928,22 +9027,36 @@ var Plugin = class _Plugin {
       context.virtuals.createVModule
     );
   }
-  done() {
+  //当任务处理完成后调用
+  async done() {
   }
-  async build(compilation, moduleId) {
+  //构建所有依赖文件
+  async run(compilation) {
     if (!import_Compilation.default.is(compilation)) {
       throw new Error("compilation is invalid");
     }
     if (!this.#initialized) {
       this.init(compilation.complier);
     }
-    if (moduleId) {
-      compilation = this.#context.virtuals.getVModule(moduleId);
-      if (!compilation) {
-        throw new Error(`The '${moduleId}' virtual module does not exists.`);
+    return await this.#context.buildDeps(compilation);
+  }
+  //构建单个文件
+  async build(compilation, vmId = null) {
+    if (!import_Compilation.default.is(compilation)) {
+      throw new Error("compilation is invalid");
+    }
+    if (!this.#initialized) {
+      this.init(compilation.complier);
+    }
+    if (vmId) {
+      let vm = this.#context.virtuals.getVModule(vmId);
+      if (vm) {
+        return await this.#context.builder(vm);
+      } else {
+        throw new Error(`The '${vmId}' virtual module does not exists.`);
       }
     }
-    return await this.#context.builder(compilation);
+    return await this.#context.build(compilation);
   }
 };
 var Plugin_default = Plugin;
@@ -9048,6 +9161,11 @@ var defaultConfig = {
       prefix: "",
       resolve: null
     }
+  },
+  comments: false,
+  manifests: {
+    comments: false,
+    annotations: false
   },
   privateChain: true,
   resolve: {

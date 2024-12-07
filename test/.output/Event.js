@@ -11,18 +11,15 @@ function Event( type, bubbles, cancelable ){
     this.bubbles = !!bubbles;
     this.cancelable = !!cancelable;
 }
-
 Event.isEvent=function isEvent( obj ){
     if( obj ){
         return obj instanceof Event;
     }
     return false;
 }
-
 Event.prototype = Object.create(Object.prototype,{
     "constructor":{value:Event}
 });
-
 Event.prototype.bubbles = true;
 Event.prototype.cancelable = true;
 Event.prototype.currentTarget = null;
@@ -32,7 +29,6 @@ Event.prototype.originalEvent = null;
 Event.prototype.type = null;
 Event.prototype.propagationStopped = false;
 Event.prototype.immediatePropagationStopped = false;
-
 /**
  * 阻止事件的默认行为
  */
@@ -48,7 +44,6 @@ Event.prototype.preventDefault = function preventDefault(){
         }
     }
 };
-
 /**
  * 阻止向上冒泡事件
  */
@@ -58,7 +53,6 @@ Event.prototype.stopPropagation = function stopPropagation(){
     }
     this.propagationStopped = true;
 };
-
 /**
  *  阻止向上冒泡事件，并停止执行当前事件类型的所有侦听器
  */

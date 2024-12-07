@@ -9,6 +9,7 @@ class Creator {
         const compiler = new Compiler(Object.assign({
             debug:false,
             diagnose:true,
+            enableComments:true,
             autoLoadDescribeFile:true,
             workspace:path.join(__dirname,"./src"),
             parser:{
@@ -22,6 +23,7 @@ class Creator {
             outExt:'.js',
             outDir:'test/.output',
             mode:'development',
+            comments:true,
             metadata:{
                 env:{NODE_ENV:'development'},
                 platform:'client',
@@ -59,7 +61,7 @@ class Creator {
     }
 
     build(compilation){
-        this.plugin.build(compilation);
+        this.plugin.run(compilation);
     }
 }
 

@@ -32,7 +32,6 @@ System.getIterator=function getIterator(object){
         };
     })(object);
 }
-
 System.is=function is(left,right){
     if(left==null || !right)return false;
     if(Object.getPrototypeOf(left) === right.prototype)return true;
@@ -55,30 +54,24 @@ System.is=function is(left,right){
     }
     return left instanceof right;
 }
-
 System.isClass=function isClass(classObject){
     if(!classObject || !classObject.constructor)return false;
     const desc = Class.getClassDescriptor(classObject);
     return desc ? Class.isModifier('KIND_CLASS', desc.m) : false;
 }
-
 System.isInterface=function isInterface(classObject){
     const desc = Class.getClassDescriptor(classObject);
     return desc ? Class.isModifier('KIND_INTERFACE', desc.m) : false;
 }
-
 System.isFunction=function isFunction(target){
    return target && target.constructor === Function;
 }
-
 System.isArray=function isArray(object){
     return Array.isArray(object); 
 }
-
 System.isObject=function isObject(object){
     return typeof object === 'object';
 }
-
 System.toArray=function toArray(object){
     if( Array.isArray(object) ){
         return object;
@@ -95,7 +88,6 @@ System.toArray=function toArray(object){
     }
     return Array.from( object );
 }
-
 System.forMap=function forMap(object, callback){
     const items = [];
     System.forEach(object,(value,index)=>{
@@ -103,7 +95,6 @@ System.forMap=function forMap(object, callback){
     });
     return items;
 }
-
 System.forEach=function forEach(object, callback){
     if( !object )return;
     const type = typeof object;
@@ -136,7 +127,6 @@ System.forEach=function forEach(object, callback){
         }  
     }
 }
-
 var __EventDispatcher = null;
 System.getEventDispatcher=function getEventDispatcher(){
     if( __EventDispatcher === null ){
@@ -144,7 +134,6 @@ System.getEventDispatcher=function getEventDispatcher(){
     }
     return __EventDispatcher;
 }
-
 /**
  * 根据指定的类名获取类的对象
  * @param name
@@ -161,19 +150,16 @@ System.getEventDispatcher=function getEventDispatcher(){
  System.hasClass = function hasClass(name){
      return !!Class.getClassByName(name);
  };
-
  System.firstUpperCase=function firstUpperCase(value){
     if(!value)return value;
     value = String(value);
     return value.substring(0,1).toUpperCase()+value.substring(1);
  }
-
  System.firstLowerCase=function firstLowerCase(value){
     if(!value)return value;
     value = String(value);
     return value.substring(0,1).toLowerCase()+value.substring(1);
  }
-
  const globalConfig = Object.create(null);
  System.setConfig=function setConfig(key, value){
     key = String(key);
@@ -193,7 +179,6 @@ System.getEventDispatcher=function getEventDispatcher(){
     }
     object[key] = value;
  }
-
  System.getConfig=function getConfig(key){
     key = String(key);
     const segments = key.split('.').map( seg=>seg.trim() ).filter( seg=>!!seg );
@@ -212,7 +197,6 @@ System.getEventDispatcher=function getEventDispatcher(){
     }
     return hasOwn.call(object,key) ? object[key] : null;
  }
-
  System.createHttpRoute=function createHttpRoute(url, params={}, flag=false){
     let matching = [];
     params = params || {};
@@ -232,7 +216,6 @@ System.getEventDispatcher=function getEventDispatcher(){
                 matching.push(existsKey)
             }
         }
-
         if( d && d.charCodeAt(0) === 63 ){
             if( value !== null ){
                 return prefix+value;
@@ -258,7 +241,6 @@ System.getEventDispatcher=function getEventDispatcher(){
     }
     return url.replace(/\/$/,'');
  }
-
  var HTTP_REQUEST = null;
  System.createHttpRequest=function(HttpFactor, route, rawConfig){
     rawConfig = rawConfig || {};
@@ -292,25 +274,21 @@ System.getEventDispatcher=function getEventDispatcher(){
             }
         }
     }
-
     if( !data && String(method).toLowerCase() ==='post' ){
         data = params;
         params = void 0;
     }
-
     let request = HTTP_REQUEST;
     let config = Object.create(null);
     if( rawConfig.options && typeof rawConfig.options ==='object' ){
         config = Object.assign(config, rawConfig.options);
     }
-
     config = Object.assign(config,{
         url:url,
         method:method,
         params:params,
         data:data
     });
-
     if( !request ){
         const initConfig = Object.assign(
             Object.create(null),
@@ -319,11 +297,9 @@ System.getEventDispatcher=function getEventDispatcher(){
         request = HTTP_REQUEST = HttpFactor.create(initConfig);
         System.invokeHook('httpRequestCreated', request);
     }
-
     System.invokeHook('httpRequestSendBefore', request, config);
     return request.request(config);
 }
-
 const globalInvokes = Object.create(null);
 const invokeRecords = {};
 System.invokeHook=function invokeHook(type, ...args){
@@ -341,12 +317,10 @@ System.invokeHook=function invokeHook(type, ...args){
     }
     return len > 0 ? _invokeHook(items, args, records, true) : args[0] || null;
 }
-
 System.dispatchHook=function dispatchHook(type, ...args){
     const items = globalInvokes[type];
     return _invokeHook(items, args);
 }
-
 function _invokeHook(items, args, records=null, force=false){
     try{
         let len = items && items.length;
@@ -380,20 +354,16 @@ function _invokeHook(items, args, records=null, force=false){
         console.error(e);
     }
 }
-
 System.registerHook=function registerHook(type, processer, priority, once=false){
     if( typeof processer !== 'function' ){
         throw new Error(`System.registerInvoke processer must is Function`);
     }else{
-
         if( typeof priority !== "number" || isNaN(priority) ){
             priority = 0;
         }
-
         if( !hasOwn.call(globalInvokes, type) ){
             globalInvokes[type] = [];
         }
-
         const items = globalInvokes[type];
         items.push( [processer,priority,once] );
         if( items.length > 1 ){
@@ -402,7 +372,6 @@ System.registerHook=function registerHook(type, processer, priority, once=false)
                 return a[1] > b[1] ? -1 : 1;
             });
         }
-
         if( hasOwn.call(invokeRecords, type) ){
             const records = invokeRecords[type];
             records.items.forEach( args=>{
@@ -411,11 +380,9 @@ System.registerHook=function registerHook(type, processer, priority, once=false)
         }
     }
 }
-
 System.registerOnceHook=function registerOnceHook(type, processer, priority){
     System.registerHook(type, processer, priority,true);
 }
-
 System.removeHook=function removeHook(type, processer){
     if( hasOwn.call(globalInvokes, type) ){
         const items = globalInvokes[type];
@@ -430,7 +397,6 @@ System.removeHook=function removeHook(type, processer){
     }
     return false;
 }
-
 System.hasRegisterHook=function hasRegisterHook(type, processer){
     if( hasOwn.call(globalInvokes, type) ){
         const items = globalInvokes[type];
@@ -489,7 +455,6 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
      }
      return null;
  };
-
  (function(System){
     const env = {
         'BROWSER_IE': 'IE',
@@ -512,7 +477,6 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
         (s = ua.match(/version\/([\d.]+).*safari/)) ? _platform = [env.BROWSER_SAFARI, parseFloat(s[1])] :
         (s = ua.match(/^mozilla\/([\d.]+)/)) ? _platform = [env.BROWSER_MOZILLA, parseFloat(s[1])] : null;
         env.IS_CLIENT = true;
-
         const keywords = [
             'Mobile', 'Android', 'iPhone', 'iPad', 'Windows Phone', 'BlackBerry', 'Symbian', 'Opera Mobi', 
             'Maemo', 'Meego', 'Nintendo DS', 'Nintendo', 'PSP', 'Kindle', 'PlayStation', 'MicroMessenger'
@@ -537,7 +501,6 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
             }
             return document.referrer;
         }
-
     }else{
         if(typeof process !== 'undefined' && process.versions){
             _platform = [env.NODE_JS, process.versions.node];
@@ -551,7 +514,6 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
             return ''
         }
     }
-
     /**
      * 获取当前运行平台
      * @returns {*}
@@ -564,18 +526,15 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
         }
         return _platform[0];
     };
-
     env.setPlatform=function setPlatform(name, version, isClient=false){
         _platform=[name,version];
         if(isClient){
             env.IS_CLIENT = true;
         }
     }
-
     env.isClient=function(){
         return env.IS_CLIENT;
     }
-
     /**
      * 判断是否为指定的浏览器
      * @param type
@@ -605,22 +564,18 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
     };
     System.env = env;
 }(System));
-
 (function (global, undefined) {
     "use strict";
-
     if (global.setImmediate) {
         System.setImmediate = global.setImmediate;
         System.clearImmediate = global.clearImmediate;
         return;
     }
-
     var nextHandle = 1; // Spec says greater than zero
     var tasksByHandle = {};
     var currentlyRunningATask = false;
     var doc = global.document;
     var registerImmediate;
-
     function setImmediate(callback) {
       // Callback can either be a function or a string
       if (typeof callback !== "function") {
@@ -637,11 +592,9 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
       registerImmediate(nextHandle);
       return nextHandle++;
     }
-
     function clearImmediate(handle) {
         delete tasksByHandle[handle];
     }
-
     function run(task) {
         var callback = task.callback;
         var args = task.args;
@@ -663,7 +616,6 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
             break;
         }
     }
-
     function runIfPresent(handle) {
         // From the spec: "Wait until any invocations of this algorithm started before this one have completed."
         // So if we're currently running a task, we'll need to delay this invocation.
@@ -684,13 +636,11 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
             }
         }
     }
-
     function installNextTickImplementation() {
         registerImmediate = function(handle) {
             process.nextTick(function () { runIfPresent(handle); });
         };
     }
-
     function canUsePostMessage() {
         // The test against `importScripts` prevents this implementation from being installed inside a web worker,
         // where `global.postMessage` means something completely different and can't be used for this purpose.
@@ -705,12 +655,10 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
             return postMessageIsAsynchronous;
         }
     }
-
     function installPostMessageImplementation() {
         // Installs an event handler on `global` for the `message` event: see
         // * https://developer.mozilla.org/en/DOM/window.postMessage
         // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
-
         var messagePrefix = "setImmediate$" + Math.random() + "$";
         var onGlobalMessage = function(event) {
             if (event.source === global &&
@@ -719,30 +667,25 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
                 runIfPresent(+event.data.slice(messagePrefix.length));
             }
         };
-
         if (global.addEventListener) {
             global.addEventListener("message", onGlobalMessage, false);
         } else {
             global.attachEvent("onmessage", onGlobalMessage);
         }
-
         registerImmediate = function(handle) {
             global.postMessage(messagePrefix + handle, "*");
         };
     }
-
     function installMessageChannelImplementation() {
         var channel = new MessageChannel();
         channel.port1.onmessage = function(event) {
             var handle = event.data;
             runIfPresent(handle);
         };
-
         registerImmediate = function(handle) {
             channel.port2.postMessage(handle);
         };
     }
-
     function installReadyStateChangeImplementation() {
         var html = doc.documentElement;
         registerImmediate = function(handle) {
@@ -758,35 +701,28 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
             html.appendChild(script);
         };
     }
-
     function installSetTimeoutImplementation() {
         registerImmediate = function(handle) {
             setTimeout(runIfPresent, 0, handle);
         };
     }
-
     // Don't get fooled by e.g. browserify environments.
     if ({}.toString.call(global.process) === "[object process]") {
         // For Node.js before 0.9
         installNextTickImplementation();
-
     } else if (canUsePostMessage()) {
         // For non-IE10 modern browsers
         installPostMessageImplementation();
-
     } else if (global.MessageChannel) {
         // For web workers, where supported
         installMessageChannelImplementation();
-
     } else if (doc && "onreadystatechange" in doc.createElement("script")) {
         // For IE 6–8
         installReadyStateChangeImplementation();
-
     } else {
         // For older browsers
         installSetTimeoutImplementation();
     }
-
     System.setImmediate = setImmediate;
     System.clearImmediate = clearImmediate;
 }(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));

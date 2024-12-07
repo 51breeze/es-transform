@@ -11,6 +11,13 @@ const Event = require("./Event.js");
 const Param = require("./unit/Param.js");
 const Types = require("./Types.js");
 const _private0 = Class.getKeySymbols("da6e3003");
+/**
+* Test a class
+* @param name string
+**/
+/**
+* a constructor method
+**/
 function Test(name,age){
     Person.call(this,name);
     Object.defineProperty(this,_private0,{
@@ -37,6 +44,9 @@ Class.creator(Test,{
     methods:{
         getClass:{
             m:800,
+            /**
+            *  返回一个类的引用
+            **/
             value:function getClass(){
                 var a = Test;
                 var buname = {
@@ -74,6 +84,10 @@ Class.creator(Test,{
         uuName:{
             m:576,
             enumerable:true,
+            /**
+            * @public
+            * the is static getter
+            **/
             get:function uuName(){
                 return 'uuName';
             }
@@ -81,6 +95,10 @@ Class.creator(Test,{
         iiu:{
             m:2312,
             writable:true,
+            /**
+            * @private
+            * the is class type.
+            **/
             value:Test
         },
         main:{

@@ -7,17 +7,14 @@ const Event = require("./Event.js");
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
  */
-
 var __KEY__ = Symbol('EventDispatcher');
 function EventDispatcher( target ){
     if( !(this instanceof EventDispatcher) ){
         return new EventDispatcher( target );
     }
-
     if( !Object.prototype.hasOwnProperty.call(this,__KEY__) ){
         Object.defineProperty(this,__KEY__,{value:{events:{},isEvent:false,proxy:null}});
     }
-
     if( target ){
         if( typeof target !== 'object'){
             throw new Error('target is not object');
@@ -27,9 +24,7 @@ function EventDispatcher( target ){
         data.proxy = target;
     }
 }
-
 EventDispatcher.prototype.constructor = EventDispatcher;
-
 /**
  * 判断是否有指定类型的侦听器
  * @param type
@@ -52,7 +47,6 @@ EventDispatcher.prototype.hasEventListener=function hasEventListener( type , lis
     }
     return false;
 };
-
 /**
  * 添加侦听器
  * @param type
@@ -91,7 +85,6 @@ EventDispatcher.prototype.addEventListener=function addEventListener(type,callba
     });
     return this;
 };
-
 /**
  * 移除指定类型的侦听器
  * @param type
@@ -125,7 +118,6 @@ EventDispatcher.prototype.removeEventListener=function removeEventListener(type,
     }
     return events.length !== ret;
 };
-
 /**
  * 调度指定事件
  * @param event
@@ -140,8 +132,6 @@ EventDispatcher.prototype.dispatchEvent=function dispatchEvent( event ){
     event.target = event.currentTarget=this;
     return $dispatchEvent( event );
 };
-
-
 function $removeListener(target, type , handle ){
     var eventType= type;
     if( target.removeEventListener ){
@@ -151,7 +141,6 @@ function $removeListener(target, type , handle ){
         target.detachEvent(eventType,handle);
     }
 }
-
 /**
  * 调度指定侦听项
  * @param event
@@ -175,7 +164,6 @@ function $dispatchEvent(e){
     }
     return true;
 }
-
 /**
  * 事件侦听器
  * @param type
@@ -194,7 +182,6 @@ function Listener(type,callback,useCapture,priority,reference,dispatcher){
     this.reference=reference || null;
     this.dispatcher=dispatcher;
 }
-
 Object.defineProperty(Listener.prototype,"constructor",{value:Listener});
 Listener.prototype.useCapture=false;
 Listener.prototype.dispatcher=null;
