@@ -3308,9 +3308,16 @@ var VirtualModule = class {
   #imports = [];
   #changed = true;
   #references = /* @__PURE__ */ new Map();
+  #after = false;
   constructor(id, ns) {
     this.#id = id;
     this.#ns = Array.isArray(ns) ? ns : String(ns).split(".");
+  }
+  set after(value) {
+    this.#after = !!value;
+  }
+  get after() {
+    return this.#after;
   }
   get ns() {
     return this.#ns;
@@ -3408,6 +3415,8 @@ var VirtualModule = class {
       let module2 = import_Namespace2.default.globals.get(classname);
       if (module2) {
         ctx.addDepend(module2, context);
+      } else {
+        ctx.error(`[ES-TRANSFORM] References "${classname}" not found.`);
       }
     });
   }
@@ -3621,9 +3630,9 @@ var Context = class _Context extends Token_default {
   get dependencies() {
     return this.#dependencies;
   }
-  async buildDeps() {
+  addBuildAfterDep(dep) {
     const ctx = this.plugin.context;
-    await ctx.buildDeps(this);
+    ctx.addBuildAfterDep(dep);
   }
   createAsset(source) {
     let asset = this.assets.createAsset(source);
@@ -4696,11 +4705,18 @@ var Asset = class {
   #changed = true;
   #attrs = null;
   #initialized = false;
+  #after = false;
   constructor(sourceFile, type, id = null) {
     this.#type = type;
     this.#file = sourceFile;
     this.#sourceId = sourceFile;
     this.#id = id;
+  }
+  set after(value) {
+    this.#after = !!value;
+  }
+  get after() {
+    return this.#after;
   }
   get code() {
     let code = this.#code;
@@ -4815,6 +4831,9 @@ var Asset = class {
     this.#changed = false;
   }
 };
+function isAsset(value) {
+  return value ? value instanceof Asset : false;
+}
 function getAssetsManager(AssetFactory) {
   const records3 = /* @__PURE__ */ new Map();
   function createAsset(sourceFile, id = null, type = null) {
@@ -8687,13 +8706,6 @@ async function buildProgram(ctx, compilation, graph) {
     }
   }
 }
-async function buildAssets(ctx, buildGraph) {
-  let assets = buildGraph.assets;
-  if (!assets) return;
-  await Promise.all(
-    Array.from(assets.values()).map((asset) => asset.build(ctx))
-  );
-}
 function getTokenManager(options) {
   let _createToken = options.transform.createToken;
   let _tokens = options.transform.tokens;
@@ -8740,6 +8752,7 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
   let graphs = getBuildGraphManager();
   let token = getTokenManager(plugin2.options);
   let cache = getCacheManager();
+  let buildAfterDeps = /* @__PURE__ */ new Set();
   let glob = null;
   let resolve = plugin2.options.resolve || {};
   let imports = resolve?.imports || {};
@@ -8781,6 +8794,7 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
       await buildAssets(ctx, buildGraph);
       await ctx.emit(buildGraph);
     }
+    afterTask();
     return buildGraph;
   }
   async function buildDeps(compiOrVModule) {
@@ -8813,9 +8827,27 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
       await ctx.emit(buildGraph);
     }
     await callAsyncSequence(getBuildDeps(ctx), async (dep) => {
-      await buildDeps(dep);
+      if (isVModule(dep) && dep.after) {
+        addBuildAfterDep(dep);
+      } else {
+        await buildDeps(dep);
+      }
     });
+    afterTask();
     return buildGraph;
+  }
+  async function buildAssets(ctx, buildGraph) {
+    let assets2 = buildGraph.assets;
+    if (!assets2) return;
+    let items = Array.from(assets2.values()).map((asset) => {
+      if (asset.after) {
+        addBuildAfterDep(asset);
+        return null;
+      } else {
+        return asset;
+      }
+    }).filter(Boolean);
+    await Promise.all(items.map((asset) => asset.build(ctx)));
   }
   function getBuildDeps(ctx) {
     const deps = /* @__PURE__ */ new Set();
@@ -8839,11 +8871,48 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
     });
     return Array.from(deps.values());
   }
+  function addBuildAfterDep(dep) {
+    buildAfterDeps.add(dep);
+  }
+  let waitingBuildAfterDeps = /* @__PURE__ */ new Set();
+  function afterTask() {
+    if (buildAfterDeps.size < 1) return;
+    buildAfterDeps.forEach((dep) => {
+      waitingBuildAfterDeps.add(dep);
+    });
+    buildAfterDeps.clear();
+    setImmediate(async () => {
+      if (waitingBuildAfterDeps.size > 0) {
+        let deps = Array.from(waitingBuildAfterDeps.values());
+        waitingBuildAfterDeps.clear();
+        await callAsyncSequence(deps, async (dep) => {
+          if (isAsset(dep)) {
+            await dep.build(new Context_default(
+              dep,
+              plugin2,
+              variables,
+              graphs,
+              assets,
+              virtuals,
+              glob,
+              cache,
+              token
+            ));
+          } else {
+            records3.delete(dep);
+            await buildDeps(dep);
+          }
+        });
+      }
+    });
+  }
   return {
     build,
     buildDeps,
-    getBuildDeps,
     buildAssets,
+    buildAfterDeps,
+    getBuildDeps,
+    addBuildAfterDep,
     assets,
     virtuals,
     variables,
