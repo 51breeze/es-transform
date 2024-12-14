@@ -33,7 +33,7 @@ class Creator {
             },
             module:"cjs",
         });
-        this.plugin.init(compiler)
+        //this.plugin.beforeStart(compiler)
     }
 
     get compiler(){

@@ -8794,7 +8794,7 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
       await buildAssets(ctx, buildGraph);
       await ctx.emit(buildGraph);
     }
-    afterTask();
+    invokeAfterTask();
     return buildGraph;
   }
   async function buildDeps(compiOrVModule) {
@@ -8833,7 +8833,7 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
         await buildDeps(dep);
       }
     });
-    afterTask();
+    invokeAfterTask();
     return buildGraph;
   }
   async function buildAssets(ctx, buildGraph) {
@@ -8875,7 +8875,7 @@ function createBuildContext(plugin2, records3 = /* @__PURE__ */ new Map()) {
     buildAfterDeps.add(dep);
   }
   let waitingBuildAfterDeps = /* @__PURE__ */ new Set();
-  function afterTask() {
+  function invokeAfterTask() {
     if (buildAfterDeps.size < 1) return;
     buildAfterDeps.forEach((dep) => {
       waitingBuildAfterDeps.add(dep);
@@ -9030,12 +9030,12 @@ var Plugin = class _Plugin {
     return value ? value instanceof _Plugin : false;
   }
   #name = null;
-  #version = "0.0.0";
-  #records = null;
   #options = null;
   #initialized = false;
   #context = null;
   #complier = null;
+  #version = "0.0.0";
+  #records = /* @__PURE__ */ new Map();
   constructor(name, version, options = {}) {
     plugins.add(this);
     this.#name = name;
@@ -9044,6 +9044,9 @@ var Plugin = class _Plugin {
     if (options.mode) {
       options.metadata.env.NODE_ENV = options.mode;
     }
+  }
+  get initialized() {
+    return this.#initialized;
   }
   //插件名
   get name() {
@@ -9057,6 +9060,10 @@ var Plugin = class _Plugin {
   get version() {
     return this.#version;
   }
+  //构建缓存，存在缓存中的不会构建
+  get records() {
+    return this.#records;
+  }
   //编译器对象
   get complier() {
     return this.#complier;
@@ -9065,67 +9072,80 @@ var Plugin = class _Plugin {
   get context() {
     return this.#context;
   }
-  //构建前调用
-  async init(complier) {
+  //创建一个用来构建的上下文对象。每个插件都应该实现自己的上下文对象
+  createContext() {
+    return this.#context = this.#context || createBuildContext(this, this.records);
+  }
+  //初始化需要的虚拟模块。 每个插件都应该实现自己的虚拟模块
+  createVModule() {
+    createPolyfillModule(
+      import_path6.default.join(__dirname, "./polyfills"),
+      this.context.virtuals.createVModule
+    );
+  }
+  //开发模式下调用，用来监听文件变化时删除缓存
+  devMode() {
+    let tableBuilders = null;
+    this.complier.on("onChanged", (compilation) => {
+      this.records.delete(compilation);
+      let mainModule = compilation.mainModule;
+      if (mainModule.isStructTable) {
+        tableBuilders = tableBuilders || getAllBuilder();
+        compilation.modules.forEach((module2) => {
+          if (module2.isStructTable) {
+            tableBuilders.forEach((builder) => {
+              builder.removeTable(module2.id);
+            });
+          }
+        });
+      }
+    });
+  }
+  async init() {
+    defineError(this.complier);
+  }
+  //构建前调用。
+  async beforeStart(complier) {
     if (this.#initialized) return;
     this.#initialized = true;
     this.#complier = complier;
-    this.#records = /* @__PURE__ */ new Map();
-    defineError(complier);
+    this.createContext();
+    this.createVModule();
+    await this.init();
     if (this.options.mode === "development") {
-      let tableBuilders = null;
-      complier.on("onChanged", (compilation) => {
-        this.#records.delete(compilation);
-        let mainModule = compilation.mainModule;
-        if (mainModule.isStructTable) {
-          tableBuilders = tableBuilders || getAllBuilder();
-          compilation.modules.forEach((module2) => {
-            if (module2.isStructTable) {
-              tableBuilders.forEach((builder) => {
-                builder.removeTable(module2.id);
-              });
-            }
-          });
-        }
-      });
+      this.devMode();
     }
-    let context = createBuildContext(this, this.#records);
-    this.#context = context;
-    createPolyfillModule(
-      import_path6.default.join(__dirname, "./polyfills"),
-      context.virtuals.createVModule
-    );
   }
-  //当任务处理完成后调用
-  async done() {
+  //当任务处理完成后调用。在加载插件或者打包插件时会调用这个方法，用来释放一些资源
+  async afterDone() {
   }
   //构建所有依赖文件
   async run(compilation) {
     if (!import_Compilation.default.is(compilation)) {
       throw new Error("compilation is invalid");
     }
-    if (!this.#initialized) {
-      this.init(compilation.complier);
+    if (!this.initialized) {
+      await this.beforeStart(compilation.compiler);
     }
-    return await this.#context.buildDeps(compilation);
+    return await this.context.buildDeps(compilation);
   }
   //构建单个文件
   async build(compilation, vmId = null) {
     if (!import_Compilation.default.is(compilation)) {
       throw new Error("compilation is invalid");
     }
-    if (!this.#initialized) {
-      this.init(compilation.complier);
+    if (!this.initialized) {
+      await this.beforeStart(compilation.compiler);
     }
     if (vmId) {
-      let vm = this.#context.virtuals.getVModule(vmId);
+      let vm = this.context.virtuals.getVModule(vmId);
       if (vm) {
-        return await this.#context.builder(vm);
+        return await this.context.builder(vm);
       } else {
         throw new Error(`The '${vmId}' virtual module does not exists.`);
       }
     }
-    return await this.#context.build(compilation);
+    return await this.context.build(compilation);
   }
 };
 var Plugin_default = Plugin;
@@ -9248,6 +9268,9 @@ var defaultConfig = {
   }
 };
 function getOptions(options = {}) {
+  if (arguments.length > 1) {
+    options = (0, import_merge.default)({}, ...Array.from(arguments));
+  }
   return (0, import_merge.default)(
     {},
     defaultConfig,
