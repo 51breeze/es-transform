@@ -6,7 +6,7 @@ const config = {
   bundle: true,
   outdir: './dist',
   //outExtension:{'.js':'.mjs'},
-  external: ['fsevents','less','node-sass','rollup','rollup-plugin-commonjs','rollup-plugin-node-resolve','fs-extra','lodash','easescript','glob-path','source-map'],
+  external: ['fsevents','less','node-sass','rollup','rollup-plugin-commonjs','rollup-plugin-node-resolve','fs-extra','lodash','easescript','glob-path','source-map','dotenv','dotenv-expand'],
   format: 'cjs',
   platform: 'node',
   minify:false,
