@@ -99,42 +99,44 @@ const Class={
         let parent = null;
         if(descriptor && descriptor.inherit){
             parent = descriptor.inherit;
-        }
-        if(!parent){
-            let name = descriptor.ns ? descriptor.ns+'.'+descriptor.name : descriptor.name;
-            throw new Error(`The '${name}' class is not inherits parent class`)
-        }
-        while(parent){
-            let parentDescriptor = Class.getClassDescriptor(parent);
-            if(parentDescriptor){
-                let members = parentDescriptor.members;
-                let desc = members && hasOwn.call(members, methodName) ? members[methodName] : null;
-                if(desc){
-                    if(!Class.isModifier('MODIFIER_PRIVATE', desc.m)){
-                        if(desc.set && kind==='setter'){
-                            return desc.set
-                        }else if(desc.get && kind==='getter'){
-                            return desc.get
-                        }else if(Class.isModifier('KIND_METHOD', desc.m) && kind==='method'){
-                            return desc.value;
-                        }
-                    }
-                }
-                parent = parentDescriptor.inherit;
-            }else if(parent){
-                if(typeof parent === "function"){
-                    let desc = getDescriptor(parent.prototype, methodName);
+            let has = false;
+            while(parent){
+                let parentDescriptor = Class.getClassDescriptor(parent);
+                if(parentDescriptor){
+                    let members = parentDescriptor.members;
+                    let desc = members && hasOwn.call(members, methodName) ? members[methodName] : null;
                     if(desc){
-                        if(desc.set && kind==='setter'){
-                            return desc.set
-                        }else if(desc.get && kind==='getter'){
-                            return desc.get
-                        }else if(typeof desc.value ==='function'){
-                            return desc.value
+                        has = true;
+                        if(!Class.isModifier('MODIFIER_PRIVATE', desc.m)){
+                            if(desc.set && kind==='setter'){
+                                return desc.set
+                            }else if(desc.get && kind==='getter'){
+                                return desc.get
+                            }else if(Class.isModifier('KIND_METHOD', desc.m) && kind==='method'){
+                                return desc.value;
+                            }
                         }
                     }
+                    parent = parentDescriptor.inherit;
+                }else{
+                    break;
                 }
+            }
+            if(has){
                 return null;
+            }
+        }
+        if(typeof moduleClass === "function"){
+            let obj = Reflect.getPrototypeOf(moduleClass.prototype)
+            let desc = getDescriptor(obj, methodName) || getDescriptor(_proto, methodName);
+            if(desc){
+                if(desc.set && kind==='setter'){
+                    return desc.set
+                }else if(desc.get && kind==='getter'){
+                    return desc.get
+                }else if(typeof desc.value ==='function'){
+                    return desc.value
+                }
             }
         }
         return null;

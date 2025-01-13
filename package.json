@@ -23,11 +23,11 @@
   },
   "homepage": "https://github.com/51breeze/es-transform#readme",
   "dependencies": {
+    "dotenv": "^16.4.7",
+    "dotenv-expand": "^10.0.0",
     "easescript": "latest",
     "glob-path": "latest",
     "lodash": "^4.17.21",
-    "dotenv": "^16.3.1",
-    "dotenv-expand": "^10.0.0",
     "source-map": "^0.7.4"
   },
   "devDependencies": {

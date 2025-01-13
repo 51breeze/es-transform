@@ -67,6 +67,13 @@ class ClassDescriptor{
         }
         return 'public';
     }
+    getMemberDescriptor(name, isStatic){
+        isStatic = !!isStatic;
+        return this.members.find( item=>item.key === name && item.isStatic() === isStatic)
+    }
+    isPrivatePropertyKey(key){
+        return this._descriptor.private===key;
+    }
     isPrivate(){
         return 'private' === this.permission
     }
@@ -147,12 +154,14 @@ class MemberDescriptor{
             dataset.enumerable = true;
             dataset.value = value;
             if(target){
+                dataset.resource = target;
                 if((mode & _Reflect.MODIFIER_STATIC) !== _Reflect.MODIFIER_STATIC){
                     if(key in target)dataset.value = target[key];
                 }else{
                     if((mode & _Reflect.MODIFIER_PRIVATE) === _Reflect.MODIFIER_PRIVATE){
                         const privateChain = target[privateKey];
                         if(privateChain && key in privateChain){
+                            dataset.resource = privateChain;
                             dataset.value = privateChain[key];
                         }
                     }else if(key in target){
@@ -249,6 +258,37 @@ class MemberDescriptor{
             return !!Class.getClassDescriptor(owner);
         }
         return false;
+    }
+    invokeMethod(thisArg, ...args){
+        let fn = this._dataset.get;
+        if(typeof fn ==='function'){
+            fn.call(thisArg, ...args);
+        }else{
+            throw new ReferenceError(`Invoke method is not exists on the key '${this.key}'.`)
+        }
+    }
+    invokeGetter(thisArg){
+        let fn = this._dataset.get;
+        if(typeof fn ==='function'){
+            return fn.call(thisArg);
+        }else{
+            throw new ReferenceError(`Invoke getter is not exists on the key '${this.key}'.`)
+        }
+    }
+    invokeSetter(thisArg, value){
+        let fn = this._dataset.set;
+        if(typeof fn ==='function'){
+            fn.call(thisArg, value);
+        }else{
+            throw new ReferenceError(`Invoke getter is not exists on the key '${this.key}'.`)
+        }
+    }
+    setPropertyValue(value){
+        if(this._dataset.resource){
+            this._dataset.resource[this.key] = value;
+        }else{
+            throw new Error(`Set property value failed on the key '${this.key}'.`)
+        }
     }
 }
 const _Reflect = (function(_Reflect){
