@@ -3482,11 +3482,10 @@ var VirtualModule = class {
     this.#content = content;
     this.#changed = true;
   }
-  createImports(ctx) {
+  createImports(ctx, graph) {
     this.#imports.forEach((args) => {
       let [source, local, imported] = args;
-      source = ctx.getModuleImportSource(source, this.bindModule);
-      ctx.addImport(source, local, imported);
+      ctx.createRequire(ctx.target, graph, source, local, imported);
     });
   }
   createExports(ctx) {
@@ -3545,7 +3544,7 @@ var VirtualModule = class {
   async build(ctx, graph) {
     if (!this.#changed && graph.code) return graph;
     this.#changed = false;
-    this.createImports(ctx);
+    this.createImports(ctx, graph);
     this.createReferences(ctx);
     let module2 = this.bindModule;
     let emitFile = ctx.options.emitFile;
