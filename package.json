@@ -24,8 +24,7 @@
   "homepage": "https://github.com/51breeze/es-transform#readme",
   "dependencies": {
     "dotenv": "^16.4.7",
-    "dotenv-expand": "^10.0.0",
-    "easescript": "latest",
+    "dotenv-expand": "^12.0.1",
     "glob-path": "latest",
     "lodash": "^4.17.21",
     "source-map": "^0.7.4"

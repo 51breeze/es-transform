@@ -754,6 +754,7 @@ function parseRouterAnnotation(ctx, stack) {
         ctx.error(`Method '${moduleClass.value}::${actionArg && actionArg.value}' is not exists.`, actionArg ? actionArg.stack : stack);
       } else {
         return {
+          isWebComponent: false,
           args: {
             module: moduleClass,
             action: actionArg,
@@ -1274,7 +1275,12 @@ function createRouterAnnotationNode(ctx, stack) {
     let route = getModuleRoutes(result.module, ["router"], ctx.options);
     if (route && Array.isArray(route)) route = route[0];
     if (!route) {
-      return ctx.createLiteral(result.module.getName("/"));
+      let routePathNode = ctx.createDefaultRoutePathNode(result.module);
+      if (routePathNode) {
+        return routePathNode;
+      } else {
+        return null;
+      }
     }
     const paramArg = result.args.param;
     if (!paramArg) {
@@ -1868,6 +1874,19 @@ function createESMExports(ctx, exportManage, graph) {
 function isExternalDependency(externals, source, module2 = null) {
   if (Array.isArray(externals) && externals.length > 0) {
     return externals.some((rule) => {
+      if (typeof rule === "function") {
+        return rule(source, module2);
+      } else if (rule instanceof RegExp) {
+        return rule.test(source);
+      }
+      return rule === source;
+    });
+  }
+  return false;
+}
+function isExcludeDependency(excludes, source, module2 = null) {
+  if (Array.isArray(excludes) && excludes.length > 0) {
+    return excludes.some((rule) => {
       if (typeof rule === "function") {
         return rule(source, module2);
       } else if (rule instanceof RegExp) {
@@ -3615,13 +3634,22 @@ function isVModule(value) {
 function getVirtualModuleManager(VirtualModuleFactory) {
   const virtualization = /* @__PURE__ */ new Map();
   function createVModule(sourceId, factory = VirtualModuleFactory) {
-    sourceId = Array.isArray(sourceId) ? sourceId.join(".") : String(sourceId);
+    let isSymbol = typeof sourceId === "symbol";
+    if (!isSymbol) {
+      sourceId = Array.isArray(sourceId) ? sourceId.join(".") : String(sourceId);
+    }
     let old = virtualization.get(sourceId);
     if (old) return old;
-    let segs = sourceId.split(".");
-    let vm = new factory(segs.pop(), segs);
-    virtualization.set(sourceId, vm);
-    return vm;
+    if (isSymbol) {
+      let vm = new factory(sourceId, []);
+      virtualization.set(sourceId, vm);
+      return vm;
+    } else {
+      let segs = sourceId.split(".");
+      let vm = new factory(segs.pop(), segs);
+      virtualization.set(sourceId, vm);
+      return vm;
+    }
   }
   function getVModule(sourceId) {
     return virtualization.get(sourceId);
@@ -4258,6 +4286,9 @@ var Context = class _Context extends Token_default {
     return variables.getLocalRefs(stack, name);
   }
   getImportAssetsMapping(file, options = {}) {
+    if (isExcludeDependency(this.options.dependency.excludes, file, this.target)) {
+      return null;
+    }
     if (!options.group) {
       options.group = "imports";
     }
@@ -4291,7 +4322,7 @@ var Context = class _Context extends Token_default {
   getModuleImportSource(source, context, sourceId = null) {
     const config = this.options;
     const isString = typeof source === "string";
-    if (isString && isExternalDependency(this.options.dependences.externals, source, context)) {
+    if (isString && isExternalDependency(this.options.dependency.externals, source, context)) {
       return source;
     }
     if (isString && source.includes("${__filename}")) {
@@ -4438,6 +4469,12 @@ var Context = class _Context extends Token_default {
     let local = this.getGlobalRefName(null, name);
     this.addImport("vue", local, name);
     return local;
+  }
+  createDefaultRoutePathNode(module2) {
+    if (import_Utils4.default.isModule(module2)) {
+      return this.createLiteral("/" + module2.getName("/"));
+    }
+    return null;
   }
   createVNodeHandleNode(stack, ...args) {
     let handle = this.#vnodeHandleNode;
@@ -4606,24 +4643,11 @@ function getVariableManager() {
     return manage.has(name);
   }
   function getRefs(context, name, isTop = false, flags = REFS_All) {
-    let manage = null;
-    let ctxScope = context;
-    let scope = null;
-    if (import_Utils5.default.isStack(context)) {
-      scope = context.scope;
-      if (!import_Scope.default.is(scope)) {
-        throw new Error("Variable.getRefs scope invalid");
-      }
-      manage = _getVariableManage(
-        isTop ? scope.getScopeByType("top") : scope.getScopeByType("function") || scope.getScopeByType("top")
-      );
-    } else {
-      manage = _getVariableManage(ctxScope);
-    }
+    let manage = getVariableManage(context, isTop);
     if (manage.has(name)) {
       return manage.get(name);
     }
-    return manage.getRefs(name, scope, flags);
+    return manage.getRefs(name, import_Utils5.default.isStack(context) ? context.scope : null, flags);
   }
   function getVariableManage(context, isTop = false) {
     if (import_Utils5.default.isStack(context)) {
@@ -9455,8 +9479,7 @@ var package_default = {
   homepage: "https://github.com/51breeze/es-transform#readme",
   dependencies: {
     dotenv: "^16.4.7",
-    "dotenv-expand": "^10.0.0",
-    easescript: "latest",
+    "dotenv-expand": "^12.0.1",
     "glob-path": "latest",
     lodash: "^4.17.21",
     "source-map": "^0.7.4"
@@ -9546,7 +9569,7 @@ var defaultConfig = {
     imports: {},
     folders: {}
   },
-  dependences: {
+  dependency: {
     externals: [],
     includes: [],
     excludes: []
