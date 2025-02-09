@@ -4241,7 +4241,7 @@ var Context = class _Context extends Token_default {
       }
     }
   }
-  getGlobalRefName(stack, name, group = null) {
+  getGlobalRefName(stack, name, objectKey = null) {
     if (!stack) {
       if (import_Utils4.default.isModule(this.target)) {
         stack = this.target.compilation.stack;
@@ -4251,19 +4251,19 @@ var Context = class _Context extends Token_default {
       stack = stack || this;
     }
     let variables = this.variables;
-    if (group) {
+    if (objectKey) {
       let key = "getGlobalRefName:" + name;
-      if (this.cache.has(group, key)) {
-        return this.cache.get(group, key);
+      if (this.cache.has(objectKey, key)) {
+        return this.cache.get(objectKey, key);
       } else {
         let value = variables.hasRefs(stack, name, true) ? variables.genGlobalRefs(stack, name) : variables.getGlobalRefs(stack, name);
-        this.cache.set(group, key, value);
+        this.cache.set(objectKey, key, value);
         return value;
       }
     }
     return variables.getGlobalRefs(stack, name);
   }
-  getLocalRefName(stack, name, group = null) {
+  getLocalRefName(stack, name, objectKey = null) {
     if (!stack) {
       if (import_Utils4.default.isModule(this.target)) {
         stack = this.target.compilation.stack;
@@ -4273,17 +4273,75 @@ var Context = class _Context extends Token_default {
       stack = stack || this;
     }
     let variables = this.variables;
-    if (group) {
+    if (objectKey) {
       let key = "getLocalRefName:" + name;
-      if (this.cache.has(group, key)) {
-        return this.cache.get(group, key);
+      if (this.cache.has(objectKey, key)) {
+        return this.cache.get(objectKey, key);
       } else {
         let value = variables.hasRefs(stack, name) ? variables.genLocalRefs(stack, name) : variables.getLocalRefs(stack, name);
-        this.cache.set(group, key, value);
+        this.cache.set(objectKey, key, value);
         return value;
       }
     }
     return variables.getLocalRefs(stack, name);
+  }
+  genLocalRefName(stack, name, objectKey = null) {
+    if (!stack) {
+      if (import_Utils4.default.isModule(this.target)) {
+        stack = this.target.compilation.stack;
+      } else {
+        stack = this.target.stack;
+      }
+      stack = stack || this;
+    }
+    let variables = this.variables;
+    if (objectKey) {
+      let key = "genLocalRefName:" + name;
+      if (this.cache.has(objectKey, key)) {
+        return this.cache.get(objectKey, key);
+      } else {
+        let value = variables.genLocalRefs(stack, name);
+        this.cache.set(objectKey, key, value);
+        return value;
+      }
+    }
+    return variables.genLocalRefs(stack, name);
+  }
+  genGlobalRefName(stack, name, objectKey = null) {
+    if (!stack) {
+      if (import_Utils4.default.isModule(this.target)) {
+        stack = this.target.compilation.stack;
+      } else {
+        stack = this.target.stack;
+      }
+      stack = stack || this;
+    }
+    let variables = this.variables;
+    if (objectKey) {
+      let key = "genGlobalRefName:" + name;
+      if (this.cache.has(objectKey, key)) {
+        return this.cache.get(objectKey, key);
+      } else {
+        let value = variables.genGlobalRefs(stack, name);
+        this.cache.set(objectKey, key, value);
+        return value;
+      }
+    }
+    return variables.genGlobalRefs(stack, name);
+  }
+  getWasLocalRefName(target, name, genFlag = false) {
+    let key = genFlag ? "genLocalRefName:" + name : "getLocalRefName:" + name;
+    if (this.cache.has(target, key)) {
+      return this.cache.get(target, key);
+    }
+    return null;
+  }
+  getWasGlobalRefName(target, name, genFlag = false) {
+    let key = genFlag ? "genGlobalRefName:" + name : "getGlobalRefName:" + name;
+    if (this.cache.has(target, key)) {
+      return this.cache.get(target, key);
+    }
+    return null;
   }
   getImportAssetsMapping(file, options = {}) {
     if (isExcludeDependency(this.options.dependency.excludes, file, this.target)) {
