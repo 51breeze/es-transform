@@ -9633,14 +9633,11 @@ var defaultConfig = {
     excludes: []
   }
 };
-function getOptions(options = {}) {
-  if (arguments.length > 1) {
-    options = (0, import_merge.default)({}, ...Array.from(arguments));
-  }
+function getOptions(...options) {
   return (0, import_merge.default)(
     {},
     defaultConfig,
-    options
+    ...options
   );
 }
 function plugin(options = {}) {
