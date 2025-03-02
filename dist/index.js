@@ -4353,7 +4353,21 @@ var Context = class _Context extends Token_default {
     if (!options.delimiter) {
       options.delimiter = "/";
     }
+    if (typeof file === "string") {
+      file = this.replaceImportSource(file);
+    }
     return this.resolveImportSource(file, options);
+  }
+  replaceImportSource(source) {
+    if (source.startsWith("${__filename}")) {
+      let target = this.target;
+      if (isVModule(target)) {
+        target = target.bindModule || target;
+      }
+      let owner = import_Utils4.default.isModule(target) ? target.compilation : target;
+      source = source.replace("${__filename}", import_Utils4.default.normalizePath(owner.file));
+    }
+    return source;
   }
   getSourceFileMappingFolder(file, flag) {
     const result = this.resolveSourceFileMappingPath(file, "folders");
@@ -4380,12 +4394,11 @@ var Context = class _Context extends Token_default {
   getModuleImportSource(source, context, sourceId = null) {
     const config = this.options;
     const isString = typeof source === "string";
+    if (isString) {
+      source = this.replaceImportSource(source);
+    }
     if (isString && isExternalDependency(this.options.dependency.externals, source, context)) {
       return source;
-    }
-    if (isString && source.includes("${__filename}")) {
-      const owner = import_Utils4.default.isModule(context) ? context.compilation : context;
-      source = source.replace("${__filename}", import_Utils4.default.isCompilation(owner) ? owner.file : this.target.file);
     }
     if (isString && source.includes("/node_modules/")) {
       if (import_path2.default.isAbsolute(source)) return source;
@@ -9253,6 +9266,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
 }
 
 // lib/core/Polyfill.js
+var import_Utils21 = __toESM(require("easescript/lib/core/Utils"));
 var import_fs5 = __toESM(require("fs"));
 var import_path5 = __toESM(require("path"));
 var TAGS_REGEXP = /(?:[\r\n]+|^)\/\/\/(?:\s+)?<(references|namespaces|export|import|createClass)\s+(.*?)\/>/g;
@@ -9329,7 +9343,7 @@ function parsePolyfillModule(file, createVModule) {
   } else {
     vm.addExport("default", vm.id);
   }
-  vm.file = file;
+  vm.file = import_Utils21.default.normalizePath(file);
   vm.setContent(content);
 }
 function createPolyfillModule(dirname, createVModule) {
