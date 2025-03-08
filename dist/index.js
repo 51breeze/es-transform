@@ -5085,7 +5085,7 @@ function getAssetsManager(AssetFactory) {
     }
     let asset = records2.get(key);
     if (!asset) {
-      records2.set(sourceFile, asset = new AssetFactory(sourceFile, type, id));
+      records2.set(key, asset = new AssetFactory(sourceFile, type, id));
     }
     return asset;
   }
