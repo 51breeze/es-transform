@@ -38,6 +38,7 @@ var import_merge = __toESM(require("lodash/merge"));
 
 // lib/core/Plugin.js
 var import_Compilation = __toESM(require("easescript/lib/core/Compilation"));
+var import_Diagnostic = __toESM(require("easescript/lib/core/Diagnostic"));
 var import_path6 = __toESM(require("path"));
 
 // lib/core/Builder.js
@@ -1871,15 +1872,19 @@ function createESMExports(ctx, exportManage, graph) {
   });
   return { imports, exports: exports2, declares };
 }
+function checkMatchStringOfRule(rule, source, ...args) {
+  if (rule == null) return true;
+  if (typeof rule === "function") {
+    return rule(source, ...args);
+  } else if (rule instanceof RegExp) {
+    return rule.test(source);
+  }
+  return rule === source;
+}
 function isExternalDependency(externals, source, module2 = null) {
   if (Array.isArray(externals) && externals.length > 0) {
     return externals.some((rule) => {
-      if (typeof rule === "function") {
-        return rule(source, module2);
-      } else if (rule instanceof RegExp) {
-        return rule.test(source);
-      }
-      return rule === source;
+      return rule == null ? false : checkMatchStringOfRule(rule, source, module2);
     });
   }
   return false;
@@ -1887,12 +1892,7 @@ function isExternalDependency(externals, source, module2 = null) {
 function isExcludeDependency(excludes, source, module2 = null) {
   if (Array.isArray(excludes) && excludes.length > 0) {
     return excludes.some((rule) => {
-      if (typeof rule === "function") {
-        return rule(source, module2);
-      } else if (rule instanceof RegExp) {
-        return rule.test(source);
-      }
-      return rule === source;
+      return rule == null ? false : checkMatchStringOfRule(rule, source, module2);
     });
   }
   return false;
@@ -4415,8 +4415,8 @@ var Context = class _Context extends Token_default {
     }
     return isString ? source : this.getModuleResourceId(source);
   }
-  getModuleResourceId(module2, query = {}) {
-    return this.compiler.parseResourceId(module2, query);
+  getModuleResourceId(module2, query = {}, extformat = null) {
+    return this.compiler.parseResourceId(module2, query, extformat);
   }
   resolveSourceFileMappingPath(file, group, delimiter = "/") {
     return this.resolveSourceId(file, group, delimiter);
@@ -9365,19 +9365,18 @@ function createPolyfillModule(dirname, createVModule) {
 
 // lib/core/Plugin.js
 var import_events = __toESM(require("events"));
-function defineError(complier) {
-  if (defineError.loaded || !complier || !complier.diagnostic) return;
-  defineError.loaded = true;
-  let define = complier.diagnostic.defineError;
-  define(1e4, "", [
+import_Diagnostic.default.register("transform", (definer) => {
+  definer(
+    1e4,
     "\u7ED1\u5B9A\u7684\u5C5E\u6027(%s)\u5FC5\u987B\u662F\u4E00\u4E2A\u53EF\u8D4B\u503C\u7684\u6210\u5458\u5C5E\u6027",
     "Binding the '%s' property must be an assignable members property"
-  ]);
-  define(10101, "", [
+  );
+  definer(
+    10101,
     "\u8DEF\u7531\u53C2\u6570(%s)\u7684\u9ED8\u8BA4\u503C\u53EA\u80FD\u662F\u4E00\u4E2A\u6807\u91CF",
     "Route params the '%s' defalut value can only is a literal type."
-  ]);
-}
+  );
+});
 var plugins = /* @__PURE__ */ new Set();
 var processing = /* @__PURE__ */ new Map();
 async function execute(compilation, asyncBuildHook) {
@@ -9469,7 +9468,6 @@ var Plugin = class _Plugin extends import_events.default {
     if (this.#initialized) return;
     this.#initialized = true;
     this.#complier = complier;
-    defineError(complier);
     await this.init();
     if (this.options.mode === "development") {
       this.watch();
