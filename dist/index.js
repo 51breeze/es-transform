@@ -1245,7 +1245,7 @@ function createHttpAnnotationNode(ctx, stack) {
       ctx.createIdentifier(
         ctx.getGlobalRefName(
           stack,
-          ctx.builder.getModuleReferenceName(System, stack.module)
+          ctx.getModuleReferenceName(System, stack.module)
         )
       ),
       ctx.createIdentifier("createHttpRequest")
@@ -1432,7 +1432,7 @@ function createRouteConfigNode(ctx, module2, method, paramArg) {
   if (formatRoute) {
     url = formatRoute(url, {
       action: actionName,
-      pathArg: value,
+      path: value,
       method: allowMethodNames,
       params: declareParams,
       className: module2.getName()
@@ -1458,7 +1458,7 @@ function createRouteConfigNode(ctx, module2, method, paramArg) {
     Object.keys(props).map((name) => {
       const value2 = props[name];
       if (value2) {
-        return ctx.createProperty(name, value2);
+        return ctx.createProperty(ctx.createIdentifier(name), value2);
       }
       return null;
     }).filter((item) => !!item)
