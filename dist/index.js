@@ -493,7 +493,7 @@ var annotationIndexers = {
   syntax: ["plugin", "expect"],
   plugin: ["name", "expect"],
   version: ["name", "version", "operator", "expect"],
-  readfile: ["dir", "load", "suffix", "relative", "lazy", "only", "source"],
+  readfile: ["path", "load", "suffix", "relative", "lazy", "only", "source", "extractDir"],
   http: ["classname", "action", "param", "data", "method", "config"],
   router: ["classname", "action", "param"],
   alias: ["name", "version"],
@@ -584,26 +584,40 @@ function parseMacroMethodArguments(args, name) {
   });
   return parseMacroArguments(args, name);
 }
+function parseAnnotationArguments(args, indexes, defaults = {}) {
+  let annotArgs = getAnnotationArguments(args, indexes);
+  let results = {};
+  annotArgs.forEach((arg, index) => {
+    let key = indexes[index];
+    let value = arg ? arg.value : defaults[key];
+    results[key] = value;
+  });
+  return [annotArgs, results];
+}
 function parseReadfileAnnotation(ctx, stack) {
   let args = stack.getArguments();
   let indexes = annotationIndexers.readfile;
-  let stackArgs = {};
-  let annotArgs = indexes.map((key) => {
-    return stackArgs[key] = getAnnotationArgument(key, args, indexes);
+  let [annotArgs, values] = parseAnnotationArguments(args, indexes, {
+    load: true,
+    extractDir: true,
+    relative: true
   });
-  let dirStack = annotArgs[0] && annotArgs[0].stack;
-  let [_path, _load, _suffix, _relative, _lazy, _only, _source] = annotArgs.map((item) => {
-    return item ? item.value : null;
-  });
-  if (!_path) {
+  let {
+    path: dir,
+    load,
+    suffix: _suffix,
+    relative,
+    lazy,
+    only,
+    source,
+    extractDir
+  } = values;
+  let suffixPattern = null;
+  if (!dir) {
+    ctx.error(`Readfile annotation arguments is not defined. the 'path' arguments.`, annotArgs[0] && annotArgs[0].stack || stack);
     return null;
   }
-  let dir = String(_path).trim();
-  let [load, relative, lazy, only, source] = [_load, _relative, _lazy, _only, _source].map((value) => {
-    value = String(value).trim();
-    return value == "true" || value === "TRUE";
-  });
-  let suffixPattern = null;
+  dir = String(dir).trim();
   if (dir.charCodeAt(0) === 64) {
     dir = dir.slice(1);
     let segs = dir.split(".");
@@ -622,7 +636,7 @@ function parseReadfileAnnotation(ctx, stack) {
   let rawDir = dir;
   dir = stack.compiler.resolveManager.resolveSource(dir, stack.compilation.file);
   if (!dir) {
-    ctx.error(`Readfile not found the '${rawDir}' folders`, dirStack || stack);
+    ctx.error(`Readfile not found the '${rawDir}' folders`, annotArgs[0] && annotArgs[0].stack || stack);
     return null;
   }
   if (_suffix) {
@@ -651,15 +665,28 @@ function parseReadfileAnnotation(ctx, stack) {
     if (suffix === "*") return true;
     return suffix.some((item) => file.endsWith(item));
   };
-  let files = stack.compiler.resolveFiles(dir).filter(checkSuffix).map(import_Utils.default.normalizePath);
-  if (!files.length) return null;
+  const getFileDirs = (file) => {
+    let index = file.lastIndexOf("/");
+    let dirname = file.slice(0, index);
+    if (dirname !== dir && dirname.startsWith(dir)) {
+      return [dirname, ...getFileDirs(dirname)];
+    }
+    return [];
+  };
+  let files = stack.compiler.resolveFiles(dir).filter(checkSuffix).map((file) => {
+    file = import_Utils.default.normalizePath(file);
+    if (extractDir) {
+      return [...getFileDirs(file), file];
+    }
+    return [file];
+  }).flat();
   files.sort((a, b) => {
     a = a.replaceAll(".", "/").split("/").length;
     b = b.replaceAll(".", "/").split("/").length;
     return a - b;
   });
   return {
-    args: stackArgs,
+    args: annotArgs,
     dir,
     only,
     suffix,
@@ -1510,7 +1537,7 @@ function createReadfileAnnotationNode(ctx, stack) {
         properties2.push(ctx.createProperty(ctx.createIdentifier("isFile"), ctx.createLiteral(true)));
       }
       if (object.content) {
-        properties2.push(ctx.createProperty(ctx.createIdentifier("content"), ctx.createChunkExpression(object.content)));
+        properties2.push(ctx.createProperty(ctx.createIdentifier("content"), ctx.createChunkExpression(object.content, false)));
       }
       if (object.children) {
         properties2.push(ctx.createProperty(ctx.createIdentifier("children"), ctx.createArrayExpression(make(object.children))));
@@ -1686,10 +1713,14 @@ function createCJSExports(ctx, exportManage, graph) {
           );
         }
       } else if (spec.type === "default") {
+        let local = spec.local;
+        if (spec.local.type === "ExpressionStatement") {
+          local = spec.local.expression;
+        }
         properties2.push(
           ctx.createProperty(
             ctx.createIdentifier("default"),
-            spec.local,
+            local,
             spec.stack
           )
         );
@@ -9525,7 +9556,7 @@ var Plugin_default = Plugin;
 // package.json
 var package_default = {
   name: "@easescript/transform",
-  version: "0.0.6",
+  version: "0.0.7",
   description: "Code Transform Based For EaseScript Plugin",
   main: "dist/index.js",
   scripts: {
