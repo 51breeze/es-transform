@@ -766,7 +766,7 @@ function parseRouterAnnotation(ctx, stack) {
   const [moduleClass, actionArg, paramArg] = indexes.map((key) => {
     let result = getAnnotationArgument(key, args, indexes);
     if (!result && key === "param") {
-      result = getAnnotationArgument("params", args, indexes);
+      result = getAnnotationArgument("params", args);
     }
     return result;
   });
@@ -803,6 +803,136 @@ function parseRouterAnnotation(ctx, stack) {
     }
   }
   return null;
+}
+function parseRouteAnnotation(annotation, options = {}) {
+  if (!import_Utils.default.isStack(annotation) || !annotation.isAnnotationDeclaration) {
+    return null;
+  }
+  let result = Cache.get(annotation, "parseRouteAnnotation");
+  if (result) {
+    return result;
+  }
+  const args = annotation.getArguments();
+  const owner = annotation.additional;
+  const annotName = annotation.getLowerCaseName();
+  const module2 = owner.module;
+  const isWebComponent = module2.isWebComponent();
+  const defaultValue = {};
+  const pathArg = getAnnotationArgument("path", args, ["path"]);
+  const metaArg = getAnnotationArgument("meta", args);
+  let method = annotName;
+  let params = [];
+  let isRouterModule = owner.isClassDeclaration || owner.isDeclaratorDeclaration || owner.isInterfaceDeclaration;
+  if (annotName === "router") {
+    method = "*";
+    const methodArg = getAnnotationArgument("method", args);
+    if (methodArg) {
+      method = String(methodArg.value).toLowerCase();
+    }
+    if (isWebComponent) {
+      params = args.filter((arg) => !(arg === methodArg || arg === metaArg || arg === pathArg)).map((item) => {
+        let name = item.assigned ? item.key : item.value;
+        let annotParamStack2 = item.stack;
+        let optional = !!(annotParamStack2.question || annotParamStack2.node.question);
+        if (annotParamStack2.isAssignmentPattern) {
+          if (!optional) {
+            optional = !!(annotParamStack2.left.question || annotParamStack2.left.node.question);
+          }
+          if (annotParamStack2.right.isIdentifier || annotParamStack2.right.isLiteral) {
+            defaultValue[name] = annotParamStack2.right.value();
+          } else {
+            const gen = new Generator();
+            gen.make(this.createToken(annotParamStack2.right));
+            defaultValue[name] = gen.toString();
+          }
+        }
+        return { name, optional };
+      });
+    }
+  }
+  let action = null;
+  if (!isWebComponent && owner.isMethodDefinition) {
+    action = owner.value();
+    owner.params.forEach((item) => {
+      if (item.isObjectPattern || item.isArrayPattern) {
+        item.error("[es-transform] dynamic route parameters cannot define spread operations");
+        return;
+      }
+      let name = item.value();
+      let optional = !!(item.question || item.isAssignmentPattern);
+      if (item.isAssignmentPattern) {
+        if (item.right.isIdentifier || item.right.isLiteral) {
+          defaultValue[name] = annotParamStack.right.value();
+        } else {
+          const gen = new Generator();
+          gen.make(this.createToken(annotParamStack.right));
+          defaultValue[name] = gen.toString();
+        }
+      }
+      params.push({ name, optional });
+    });
+  }
+  let withNs = options.routePathWithNamespace;
+  let pathName = pathArg ? pathArg.value : action;
+  if (!pathName) {
+    pathName = module2.id;
+  }
+  let startsCode = pathName.charCodeAt(0);
+  let hasFull = false;
+  if (startsCode === 64) {
+    pathName = pathName.substring(1);
+    hasFull = true;
+  }
+  if (pathName.charCodeAt(0) === 47) {
+    pathName = pathName.substring(1);
+  }
+  if (!hasFull) {
+    if (!isRouterModule) {
+      const annotation2 = getModuleAnnotations(module2, ["router"]);
+      const route = parseRouteAnnotation(annotation2);
+      if (route) {
+        hasFull = true;
+        pathName = route.path + "/" + pathName;
+      }
+    }
+    if (withNs && !hasFull && module2.namespace) {
+      pathName = module2.namespace.getChain().concat(pathName).join("/");
+    }
+  }
+  if (pathName.charCodeAt(pathName.length - 1) === 47) {
+    pathName = pathName.slice(0, -1);
+  }
+  let complete = pathName;
+  let routeParamFormat = options.formation?.routeParamFormat;
+  if (params.length > 0) {
+    let segments = params.map((item) => {
+      if (routeParamFormat) {
+        return routeParamFormat(item.name, item.optional);
+      }
+      return item.optional ? ":" + item.name + "?" : ":" + item.name;
+    });
+    complete = [pathName, ...segments].join("/");
+  }
+  let data = {
+    isRoute: true,
+    isRouterModule,
+    path: pathName,
+    complete,
+    action,
+    params,
+    defaultValue,
+    method,
+    module: module2
+  };
+  let routePathFormat = options.formation?.routePathFormat;
+  if (routePathFormat) {
+    let value = routePathFormat(data);
+    if (value) {
+      data.path = value;
+    }
+  }
+  Cache.set(annotation, "parseRouteAnnotation", data);
+  return data;
 }
 function parseDefineAnnotation(annotation) {
   const args = annotation.getArguments();
@@ -994,92 +1124,39 @@ function createRoutePath(route, params = {}) {
   if (!route || !route.path || !route.isRoute) {
     throw new Error("route invalid");
   }
-  params = Object.assign({}, route.params || {}, params);
-  return "/" + route.path.split("/").map((segment, index) => {
-    if (segment.charCodeAt(0) === 58) {
-      segment = segment.slice(1);
-      const optional = segment.charCodeAt(segment.length - 1) === 63;
-      if (optional) {
-        segment = segment.slice(0, -1);
+  let routePath = route.path;
+  if (route.params) {
+    let segments = route.params.map((item) => {
+      let name = item.name;
+      let value = params[name];
+      if (value == null) {
+        value = route.defaultValue[name];
       }
-      if (params[segment]) {
-        return params[segment];
+      if (value == null && !item.optional) {
+        let className = item.module.getName();
+        if (item.action) {
+          className += ":" + item.action;
+        }
+        console.error(`[es-transform] Route params the "${name}" missing default value or set optional. on the "${className}"`);
       }
-      if (!optional) {
-        console.error(`[es-transform] Route params the "${segment}" missing default value or set optional. on page-component the "${route.path}"`);
-      }
-      return null;
-    }
-    return segment;
-  }).filter((val) => !!val).join("/");
+      return value;
+    }).filter(Boolean);
+    routePath = [route.path, ...segments].join("/");
+  }
+  if (!routePath.startsWith("/")) {
+    routePath = "/" + routePath;
+  }
+  return routePath;
 }
 function getModuleRoutes(module2, allows = ["router"], options = {}) {
   if (!import_Utils.default.isModule(module2) || !module2.isClass) return [];
-  const routes = [];
   const annotations = getModuleAnnotations(module2, allows);
   if (annotations && annotations.length) {
-    annotations.forEach((annotation) => {
-      const args = annotation.getArguments();
-      let annotName = annotation.getLowerCaseName();
-      let method = annotName;
-      if (annotName === "router") {
-        method = "*";
-        const methodArg = getAnnotationArgument("method", args, []);
-        if (methodArg) {
-          method = String(methodArg.value).toLowerCase();
-        }
-      }
-      const pathArg = getAnnotationArgument("path", args, ["path"]);
-      const defaultValue = {};
-      const params = args.filter((arg) => !(arg === method || arg === pathArg)).map((item) => {
-        return getModuleRouteParamRule(item.assigned ? item.key : item.value, item.stack, defaultValue);
-      });
-      let withNs = options.routePathWithNamespace?.client;
-      let className = module2.getName("/");
-      let pathName = pathArg ? pathArg.value : withNs === false ? module2.id : className;
-      if (pathName.charCodeAt(0) === 47) {
-        pathName = pathName.substring(1);
-      }
-      if (pathName.charCodeAt(pathName.length - 1) === 47) {
-        pathName = pathName.slice(0, -1);
-      }
-      let segments = [pathName].concat(params);
-      let routePath = "/" + segments.join("/");
-      let formatRoute = options.formation?.route;
-      if (formatRoute) {
-        routePath = formatRoute(routePath, {
-          pathArg,
-          params,
-          method,
-          defaultParamsValue: defaultValue,
-          className: module2.getName()
-        }) || routePath;
-      }
-      routes.push({
-        isRoute: true,
-        name: className,
-        path: routePath,
-        params: defaultValue,
-        method,
-        module: module2
-      });
+    return annotations.map((annotation) => {
+      return parseRouteAnnotation(annotation, options);
     });
   }
-  return routes;
-}
-function getModuleRouteParamRule(name, annotParamStack, defaultValue = {}) {
-  let question = annotParamStack.question || annotParamStack.node.question;
-  if (annotParamStack.isAssignmentPattern) {
-    if (!question) question = annotParamStack.left.question || annotParamStack.left.node.question;
-    if (annotParamStack.right.isIdentifier || annotParamStack.right.isLiteral) {
-      defaultValue[name] = annotParamStack.right.value();
-    } else {
-      const gen = new Generator();
-      gen.make(this.createToken(annotParamStack.right));
-      defaultValue[name] = gen.toString();
-    }
-  }
-  return question ? ":" + name + "?" : ":" + name;
+  return [];
 }
 function parseVersionExpression(expression, pluginVersion = "0.0.0", optionVersions = {}) {
   expression = String(expression).trim();
@@ -1291,8 +1368,7 @@ function createRouterAnnotationNode(ctx, stack) {
   const result = parseRouterAnnotation(ctx, stack);
   if (!result) return null;
   if (result.isWebComponent) {
-    let route = getModuleRoutes(result.module, ["router"], ctx.options);
-    if (route && Array.isArray(route)) route = route[0];
+    let route = getModuleRoutes(ctx, result.module, ["router"])[0];
     if (!route) {
       let routePathNode = ctx.createDefaultRoutePathNode(result.module);
       if (routePathNode) {
@@ -1305,30 +1381,38 @@ function createRouterAnnotationNode(ctx, stack) {
     if (!paramArg) {
       return ctx.createLiteral(createRoutePath(route));
     } else {
-      const routePath = "/" + route.path.split("/").map((segment) => {
-        if (segment.charCodeAt(0) === 58) {
-          return "<" + segment.slice(1) + ">";
-        }
-        return segment;
-      }).filter((val) => !!val).join("/");
+      let routePath = route.path;
       let paramNode = ctx.createToken(paramArg.assigned ? paramArg.stack.right : paramArg.stack);
       if (route.params) {
-        const defaultParams = ctx.createObjectExpression(
-          Object.keys(route.params).map((name) => {
-            const value = route.params[name];
-            return ctx.createProperty(ctx.createIdentifier(name), ctx.createLiteral(value));
-          })
-        );
-        paramNode = ctx.createCallExpression(
-          ctx.createMemberExpression([
-            ctx.createIdentifier("Object"),
-            ctx.createIdentifier("assign")
-          ]),
-          [
-            defaultParams,
-            paramNode
-          ]
-        );
+        let properties2 = [];
+        let segments = route.params.map((item) => {
+          let name = item.name;
+          let value = route.defaultValue[name];
+          if (value != null) {
+            properties2.push(ctx.createProperty(
+              ctx.createIdentifier(name),
+              ctx.createChunkExpression(value, false)
+            ));
+          }
+          if (item.optional) name += "?";
+          return "<" + name + ">";
+        });
+        routePath = [route.path, ...segments].join("/");
+        if (properties2.length > 0) {
+          paramNode = ctx.createCallExpression(
+            ctx.createMemberExpression([
+              ctx.createIdentifier("Object"),
+              ctx.createIdentifier("assign")
+            ]),
+            [
+              ctx.createObjectExpression(properties2),
+              paramNode
+            ]
+          );
+        }
+      }
+      if (!routePath.startsWith("/")) {
+        routePath = "/" + routePath;
       }
       return ctx.createCallExpression(
         createStaticReferenceNode(ctx, stack, "System", "createHttpRoute"),
@@ -1960,16 +2044,11 @@ function createJSXAttrHookNode(ctx, stack, desc) {
         if (stack.value && stack.value.isJSXExpressionContainer) {
           const value = stack.value.description();
           if (value && value.isModule && stack.isModuleForWebComponent(value)) {
-            let route = getModuleRoutes(value, ["router"], ctx.options);
-            if (route && route[0]) {
-              if (Array.isArray(route)) route = route[0];
-              if (route.path) {
-                return ctx.createLiteral(createRoutePath(route));
-              } else {
-                console.error(`[es-transform] Route missing the 'path' property.`);
-              }
+            let route = getModuleRoutes(ctx, value, ["router"])[0];
+            if (route) {
+              return ctx.createLiteral(createRoutePath(route));
             }
-            return ctx.createLiteral(value.getName("/"));
+            return ctx.createDefaultRoutePathNode(value);
           }
         }
         return null;
@@ -9612,7 +9691,11 @@ var defaultConfig = {
     tokens: null
   },
   formation: {
-    route: null
+    route: null,
+    routePathFormat: ({ isRouterModule, path: path7, complete, action, params, defaultValue, method, module: module2 }) => path7,
+    routeParamFormat: (name, optional = false) => {
+      return optional ? `:${name}?` : `:${name}`;
+    }
   },
   context: {
     include: null,
