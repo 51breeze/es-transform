@@ -1,7 +1,7 @@
-require("./asstes/Person-4ed310e8.js");
+require("./asstes/Person-4c6b0d54.js");
 const Class = require("./Class.js");
 const TestInterface = require("./com/TestInterface.js");
-const _private0 = Class.getKeySymbols("3c724f03");
+const _private0 = Class.getKeySymbols("9a8cd9ba");
 function Person(name){
     this.addressName=`the Person properyt "addressName"`;
     Object.defineProperty(this,_private0,{

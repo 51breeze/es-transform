@@ -29,8 +29,10 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // lib/index.js
 var lib_exports = {};
 __export(lib_exports, {
-  Plugin: () => Plugin_default,
+  Plugin: () => Plugin,
   default: () => lib_default,
+  execute: () => execute,
+  getAllPlugin: () => getAllPlugin,
   getOptions: () => getOptions
 });
 module.exports = __toCommonJS(lib_exports);
@@ -761,7 +763,13 @@ function parseHttpAnnotation(ctx, stack) {
 function parseRouterAnnotation(ctx, stack) {
   const args = stack.getArguments();
   const indexes = annotationIndexers.router;
-  const [moduleClass, actionArg, paramArg] = indexes.map((key) => getAnnotationArgument(key, args, indexes));
+  const [moduleClass, actionArg, paramArg] = indexes.map((key) => {
+    let result = getAnnotationArgument(key, args, indexes);
+    if (!result && key === "param") {
+      result = getAnnotationArgument("params", args, indexes);
+    }
+    return result;
+  });
   const module2 = moduleClass ? import_Namespace.default.globals.get(moduleClass.value) : null;
   if (!module2) {
     ctx.error(`Class '${moduleClass.value}' is not exists.`);
@@ -1212,10 +1220,6 @@ function createHttpAnnotationNode(ctx, stack) {
     }
     return null;
   };
-  const System = import_Namespace.default.globals.get("System");
-  const Http = import_Namespace.default.globals.get("net.Http");
-  ctx.addDepend(System, stack.module);
-  ctx.addDepend(Http, stack.module);
   const props = {
     data: createArgNode(data),
     options: createArgNode(config),
@@ -1229,27 +1233,14 @@ function createHttpAnnotationNode(ctx, stack) {
     return null;
   }).filter((item) => !!item);
   let calleeArgs = [
-    ctx.createIdentifier(
-      ctx.getGlobalRefName(
-        stack,
-        ctx.getModuleReferenceName(Http, stack.module)
-      )
-    ),
+    createModuleReferenceNode(ctx, stack, "net.Http"),
     routeConfigNode
   ];
   if (properties2.length > 0) {
     calleeArgs.push(ctx.createObjectExpression(properties2));
   }
   return ctx.createCallExpression(
-    ctx.createMemberExpression([
-      ctx.createIdentifier(
-        ctx.getGlobalRefName(
-          stack,
-          ctx.getModuleReferenceName(System, stack.module)
-        )
-      ),
-      ctx.createIdentifier("createHttpRequest")
-    ]),
+    createStaticReferenceNode(ctx, stack, "System", "createHttpRequest"),
     calleeArgs,
     stack
   );
@@ -1314,7 +1305,6 @@ function createRouterAnnotationNode(ctx, stack) {
     if (!paramArg) {
       return ctx.createLiteral(createRoutePath(route));
     } else {
-      const System = import_Namespace.default.globals.get("System");
       const routePath = "/" + route.path.split("/").map((segment) => {
         if (segment.charCodeAt(0) === 58) {
           return "<" + segment.slice(1) + ">";
@@ -1322,7 +1312,6 @@ function createRouterAnnotationNode(ctx, stack) {
         return segment;
       }).filter((val) => !!val).join("/");
       let paramNode = ctx.createToken(paramArg.assigned ? paramArg.stack.right : paramArg.stack);
-      ctx.addDepend(System, stack.module);
       if (route.params) {
         const defaultParams = ctx.createObjectExpression(
           Object.keys(route.params).map((name) => {
@@ -1342,16 +1331,7 @@ function createRouterAnnotationNode(ctx, stack) {
         );
       }
       return ctx.createCallExpression(
-        ctx.createMemberExpression([
-          ctx.createIdentifier(
-            ctx.getGlobalRefName(
-              stack,
-              ctx.getModuleReferenceName(System, stack.module)
-            ),
-            stack
-          ),
-          ctx.createIdentifier("createHttpRoute", stack)
-        ]),
+        createStaticReferenceNode(ctx, stack, "System", "createHttpRoute"),
         [
           ctx.createLiteral(routePath),
           paramNode
@@ -9410,7 +9390,7 @@ import_Diagnostic.default.register("transform", (definer) => {
 });
 var plugins = /* @__PURE__ */ new Set();
 var processing = /* @__PURE__ */ new Map();
-async function execute(compilation, asyncBuildHook) {
+async function execute(compilation, asyncHook) {
   if (processing.has(compilation)) {
     return await new Promise((resolve) => {
       processing.get(compilation).push(resolve);
@@ -9418,7 +9398,7 @@ async function execute(compilation, asyncBuildHook) {
   } else {
     let queues = [];
     processing.set(compilation, queues);
-    let result = await asyncBuildHook(compilation);
+    let result = await asyncHook(compilation);
     while (queues.length > 0) {
       let resolve = queues.shift();
       resolve(result);
@@ -9434,6 +9414,7 @@ var Plugin = class _Plugin extends import_events.default {
   #name = null;
   #options = null;
   #initialized = false;
+  #watched = false;
   #context = null;
   #complier = null;
   #version = "0.0.0";
@@ -9477,6 +9458,8 @@ var Plugin = class _Plugin extends import_events.default {
   }
   //开发模式下调用，用来监听文件变化时删除缓存
   watch() {
+    if (this.#watched) return;
+    this.#watched = true;
     this.complier.on("onChanged", (compilation) => {
       this.records.delete(compilation);
       let cache = this.context.cache;
@@ -9488,6 +9471,7 @@ var Plugin = class _Plugin extends import_events.default {
     });
   }
   async init() {
+    if (this.#context) return;
     this.#context = createBuildContext(this, this.records);
     createPolyfillModule(
       import_path6.default.join(__dirname, "./polyfills"),
@@ -9497,12 +9481,12 @@ var Plugin = class _Plugin extends import_events.default {
   //构建前调用。
   async beforeStart(complier) {
     if (this.#initialized) return;
-    this.#initialized = true;
     this.#complier = complier;
     await this.init();
     if (this.options.mode === "development") {
       this.watch();
     }
+    this.#initialized = true;
   }
   //当任务处理完成后调用。在加载插件或者打包插件时会调用这个方法，用来释放一些资源
   async afterDone() {
@@ -9551,7 +9535,9 @@ var Plugin = class _Plugin extends import_events.default {
     return await execute(compilation, this.context.build);
   }
 };
-var Plugin_default = Plugin;
+function getAllPlugin() {
+  return plugins;
+}
 
 // package.json
 var package_default = {
@@ -9684,7 +9670,7 @@ function getOptions(...options) {
   );
 }
 function plugin(options = {}) {
-  return new Plugin_default(
+  return new Plugin(
     package_default.name,
     package_default.version,
     getOptions(options)
@@ -9694,5 +9680,7 @@ var lib_default = plugin;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Plugin,
+  execute,
+  getAllPlugin,
   getOptions
 });
