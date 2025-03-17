@@ -10,7 +10,7 @@ const EventDispatcher = require("./EventDispatcher.js");
 const Event = require("./Event.js");
 const Param = require("./unit/Param.js");
 const Types = require("./Types.js");
-const _private0 = Class.getKeySymbols("922d4a80");
+const _private0 = Class.getKeySymbols("87c0e9be");
 /**
 * Test a class
 * @param name string

@@ -489,6 +489,7 @@ var import_dotenv_expand = __toESM(require("dotenv-expand"));
 var Cache = getCacheManager("common");
 var emptyObject = {};
 var emptyArray = [];
+var allRouteMethods = ["get", "post", "put", "delete", "option", "router"];
 var annotationIndexers = {
   env: ["name", "value", "expect"],
   runtime: ["platform", "expect"],
@@ -500,7 +501,8 @@ var annotationIndexers = {
   router: ["classname", "action", "param"],
   alias: ["name", "version"],
   hook: ["type", "version"],
-  url: ["source"]
+  url: ["source"],
+  embed: ["path"]
 };
 var compareOperatorMaps = {
   ">=": "egt",
@@ -514,6 +516,12 @@ var compareOperators = [">=", "<=", "!=", ">", "<", "="];
 var beginNumericRE = /^\d+/;
 function beginNumericLiteral(value) {
   return beginNumericRE.test(value);
+}
+function isRouteAnnotation(annotation) {
+  if (import_Utils.default.isStack(annotation) && annotation.isAnnotationDeclaration) {
+    return allRouteMethods.includes(annotation.getLowerCaseName());
+  }
+  return false;
 }
 function parseMacroAnnotation(annotation) {
   if (!(annotation.isAnnotationDeclaration || annotation.isAnnotationExpression)) {
@@ -805,7 +813,7 @@ function parseRouterAnnotation(ctx, stack2) {
   return null;
 }
 function parseRouteAnnotation(annotation, options = {}) {
-  if (!import_Utils.default.isStack(annotation) || !annotation.isAnnotationDeclaration) {
+  if (!isRouteAnnotation(annotation)) {
     return null;
   }
   let result = Cache.get(annotation, "parseRouteAnnotation");
@@ -1174,7 +1182,7 @@ function getModuleRoutes(ctx, module2, allows = ["router"]) {
   }
   return [];
 }
-function getMethodRoutes(ctx, methodStack, allows = allMethods) {
+function getMethodRoutes(ctx, methodStack, allows = allRouteMethods) {
   const annotations = getMethodAnnotations(methodStack, allows);
   if (annotations && annotations.length) {
     return annotations.map((annotation) => {
@@ -1316,12 +1324,11 @@ function parseImportDeclaration(ctx, stack2, context = null, graph = null) {
   }
   return importSource;
 }
-var allMethods = ["get", "post", "put", "delete", "option", "router"];
 function createHttpAnnotationNode(ctx, stack2) {
   const result = parseHttpAnnotation(ctx, stack2);
   if (!result) return null;
   const { param, method, data, config } = result.args;
-  const route = getMethodRoutes(result.method, allMethods, ctx.options);
+  const route = getMethodRoutes(result.method, allRouteMethods, ctx.options);
   if (!route) {
     let path7 = result.module.getName() + ":" + result.method.value();
     stack2.error(10102, path7);
@@ -1341,7 +1348,7 @@ function createHttpAnnotationNode(ctx, stack2) {
   const props = {
     data: createArgNode(data),
     options: createArgNode(config),
-    method: method && allMethods.includes(method.value) ? ctx.createLiteral(method.value) : null
+    method: method && allRouteMethods.includes(method.value) ? ctx.createLiteral(method.value) : null
   };
   const properties2 = Object.keys(props).map((name) => {
     const value = props[name];
@@ -1415,7 +1422,7 @@ function createRouterAnnotationNode(ctx, stack2) {
     }
     stack2.error(10111);
   } else {
-    let route = getMethodRoutes(ctx, result.method, allMethods)[0];
+    let route = getMethodRoutes(ctx, result.method, allRouteMethods)[0];
     return createRouteConfigNodeForHttpRequest(ctx, route, result.args.param);
   }
 }
@@ -3811,7 +3818,7 @@ var Context = class _Context extends Token_default {
   #token = null;
   #table = null;
   #vnodeHandleNode = null;
-  constructor(compiOrVModule, plugin2, variables, graphs, assets, virtuals, glob, cache, token, table) {
+  constructor(compiOrVModule, plugin2, variables, graphs, assets, virtuals, glob2, cache, token, table) {
     super();
     this.#plugin = plugin2;
     this.#target = compiOrVModule;
@@ -3819,7 +3826,7 @@ var Context = class _Context extends Token_default {
     this.#graphs = graphs;
     this.#assets = assets;
     this.#virtuals = virtuals;
-    this.#glob = glob;
+    this.#glob = glob2;
     this.#cache = cache;
     this.#token = token;
     this.#table = table;
@@ -4536,19 +4543,19 @@ var Context = class _Context extends Token_default {
     return this.resolveSourceId(file, group, delimiter);
   }
   resolveSourceId(id, group, delimiter = "/") {
-    let glob = this.#glob;
-    if (!glob) return null;
+    let glob2 = this.#glob;
+    if (!glob2) return null;
     let data = { group, delimiter, failValue: null };
     if (typeof group === "object") {
       data = group;
     }
-    return glob.dest(id, data);
+    return glob2.dest(id, data);
   }
   resolveImportSource(id, ctx = {}) {
-    let glob = this.#glob;
-    if (!glob) return id;
-    const scheme = glob.scheme(id, ctx);
-    let source = glob.parse(scheme, ctx);
+    let glob2 = this.#glob;
+    if (!glob2) return id;
+    const scheme = glob2.scheme(id, ctx);
+    let source = glob2.parse(scheme, ctx);
     let rule = scheme.rule;
     if (!rule) {
       source = id;
@@ -9101,7 +9108,7 @@ function WhileStatement_default(ctx, stack2) {
 
 // lib/core/Builder.js
 var import_glob_path = __toESM(require("glob-path"));
-async function buildProgram(ctx, compilation, graph) {
+async function buildProgram(ctx, compilation, graph, generatorClass = Generator_default) {
   let root = compilation.stack;
   if (!root) {
     throw new Error("Build program failed");
@@ -9168,20 +9175,20 @@ async function buildProgram(ctx, compilation, graph) {
     ...exports2
   ];
   if (layout.length > 0) {
-    let generator = new Generator_default(ctx);
+    let generator = new generatorClass(ctx);
     layout.forEach((item) => generator.make(item));
     graph.code = generator.code;
     graph.sourcemap = generator.sourceMap ? generator.sourceMap.toJSON() : null;
     if (emitFile) {
-      graph.outfile = ctx.getOutputAbsolutePath(compilation.mainModule || compilation);
+      graph.outfile = ctx.getOutputAbsolutePath(compilation.mainModule || compilation.file);
     }
   }
 }
-function getTokenManager(options) {
+function getTokenManager(options, tokens = {}) {
   let _createToken = options.transform.createToken;
   let _tokens = options.transform.tokens;
   let getToken = (type) => {
-    return tokens_exports[type];
+    return tokens[type];
   };
   let createToken = (ctx, stack2, type) => {
     const token = getToken(type);
@@ -9199,7 +9206,7 @@ function getTokenManager(options) {
       if (Object.prototype.hasOwnProperty.call(_tokens, type)) {
         return _tokens[type];
       }
-      return tokens_exports[type];
+      return tokens[type];
     };
   }
   if (_createToken && typeof _createToken === "function") {
@@ -9217,36 +9224,29 @@ function getTokenManager(options) {
   };
 }
 function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
-  let assets = getAssetsManager(Asset);
-  let virtuals = getVirtualModuleManager(VirtualModule);
-  let variables = getVariableManager();
-  let graphs = getBuildGraphManager();
-  let token = getTokenManager(plugin2.options);
-  let cache = getCacheManager();
-  let table = getTableManager();
+  let assets = plugin2.getWidget("assets") || getAssetsManager(Asset);
+  let virtuals = plugin2.getWidget("virtual") || getVirtualModuleManager(VirtualModule);
+  let variables = plugin2.getWidget("variable") || getVariableManager();
+  let graphs = plugin2.getWidget("graph") || getBuildGraphManager();
+  let token = plugin2.getWidget("token") || getTokenManager(plugin2.options, tokens_exports);
+  let cache = plugin2.getWidget("cache") || getCacheManager();
+  let table = plugin2.getWidget("table") || getTableManager();
+  let contextClass = plugin2.getWidget("context") || Context_default;
+  let globClass = plugin2.getWidget("glob") || import_glob_path.default;
+  let generatorClass = plugin2.getWidget("generator") || Generator_default;
+  let program = plugin2.getWidget("program") || buildProgram;
   let buildAfterDeps = /* @__PURE__ */ new Set();
-  let glob = null;
-  let resolve = plugin2.options.resolve || {};
-  let imports = resolve?.imports || {};
+  let glob2 = new globClass();
   table.addBuilder(new MySql(plugin2));
-  Object.keys(imports).forEach((key) => {
-    glob = glob || (glob = new import_glob_path.default());
-    glob.addRuleGroup(key, imports[key], "imports");
-  });
-  let folders = resolve?.folders || {};
-  Object.keys(folders).forEach((key) => {
-    glob = glob || (glob = new import_glob_path.default());
-    glob.addRuleGroup(key, folders[key], "folders");
-  });
   function makeContext(compiOrVModule) {
-    return new Context_default(
+    return new contextClass(
       compiOrVModule,
       plugin2,
       variables,
       graphs,
       assets,
       virtuals,
-      glob,
+      glob2,
       cache,
       token,
       table
@@ -9265,7 +9265,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
       if (!compiOrVModule.parserDoneFlag) {
         await compiOrVModule.ready();
       }
-      await buildProgram(ctx, compiOrVModule, buildGraph);
+      await program(ctx, compiOrVModule, buildGraph, generatorClass);
     }
     if (ctx.options.emitFile) {
       await buildAssets(ctx, buildGraph);
@@ -9287,7 +9287,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
       if (!compiOrVModule.parserDoneFlag) {
         await compiOrVModule.ready();
       }
-      await buildProgram(ctx, compiOrVModule, buildGraph);
+      await program(ctx, compiOrVModule, buildGraph, generatorClass);
     }
     if (ctx.options.emitFile) {
       await buildAssets(ctx, buildGraph);
@@ -9374,7 +9374,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
     virtuals,
     variables,
     graphs,
-    glob,
+    glob: glob2,
     cache,
     table,
     token,
@@ -9585,6 +9585,9 @@ var Plugin = class _Plugin extends import_events.default {
       options.metadata.env.NODE_ENV = options.mode;
     }
   }
+  //在子插件中实现
+  getWidget(name) {
+  }
   get initialized() {
     return this.#initialized;
   }
@@ -9633,6 +9636,15 @@ var Plugin = class _Plugin extends import_events.default {
       import_path6.default.join(__dirname, "./polyfills"),
       this.#context.virtuals.createVModule
     );
+    let resolve = this.options.resolve || {};
+    let imports = resolve?.imports || {};
+    Object.keys(imports).forEach((key) => {
+      glob.addRuleGroup(key, imports[key], "imports");
+    });
+    let folders = resolve?.folders || {};
+    Object.keys(folders).forEach((key) => {
+      glob.addRuleGroup(key, folders[key], "folders");
+    });
   }
   //构建前调用。
   async beforeStart(complier) {
