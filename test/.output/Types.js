@@ -1,6 +1,6 @@
 const Class = require("./Class.js");
 const Enumeration = require("./Enumeration.js");
-const _private = Class.getKeySymbols("826c73b1");
+const _private = Class.getKeySymbols("152f58cb");
 function Types(){
     Enumeration.apply(this,arguments);
     Object.defineProperty(this,_private,{

@@ -1,5 +1,5 @@
 const Class = require("./../Class.js");
-const _private = Class.getKeySymbols("ef719651");
+const _private = Class.getKeySymbols("84e9c8f6");
 function TestInterface(){
     this.key=null;
     Object.defineProperty(this,_private,{
