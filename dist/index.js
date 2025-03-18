@@ -840,17 +840,17 @@ function parseRouteAnnotation(annotation, options = {}) {
     if (isWebComponent) {
       params = args.filter((arg) => !(arg === methodArg || arg === metaArg || arg === pathArg)).map((item) => {
         let name = item.assigned ? item.key : item.value;
-        let annotParamStack2 = item.stack;
-        let optional = !!(annotParamStack2.question || annotParamStack2.node.question);
-        if (annotParamStack2.isAssignmentPattern) {
+        let annotParamStack = item.stack;
+        let optional = !!(annotParamStack.question || annotParamStack.node.question);
+        if (annotParamStack.isAssignmentPattern) {
           if (!optional) {
-            optional = !!(annotParamStack2.left.question || annotParamStack2.left.node.question);
+            optional = !!(annotParamStack.left.question || annotParamStack.left.node.question);
           }
-          if (annotParamStack2.right.isIdentifier || annotParamStack2.right.isLiteral) {
-            defaultValue[name] = annotParamStack2.right.value();
+          if (annotParamStack.right.isIdentifier || annotParamStack.right.isLiteral) {
+            defaultValue[name] = annotParamStack.right.value();
           } else {
             const gen = new Generator();
-            gen.make(this.createToken(annotParamStack2.right));
+            gen.make(this.createToken(annotParamStack.right));
             defaultValue[name] = gen.toString();
           }
         }
@@ -891,6 +891,9 @@ function parseRouteAnnotation(annotation, options = {}) {
 function createRouteInstance(options, module2, owner, path7, method, meta = null, params = [], defaultValue = {}, isRouterModule = false, isWebComponent = false) {
   let action = null;
   if (!isWebComponent && owner && owner.isMethodDefinition) {
+    if (!import_Utils.default.isModifierPublic(owner)) {
+      owner.error(10112);
+    }
     action = owner.value();
     owner.params.forEach((item) => {
       if (item.isObjectPattern || item.isArrayPattern) {
@@ -901,10 +904,10 @@ function createRouteInstance(options, module2, owner, path7, method, meta = null
       let optional = !!(item.question || item.isAssignmentPattern);
       if (item.isAssignmentPattern) {
         if (item.right.isIdentifier || item.right.isLiteral) {
-          defaultValue[name] = annotParamStack.right.value();
+          defaultValue[name] = item.right.value();
         } else {
           const gen = new Generator();
-          gen.make(this.createToken(annotParamStack.right));
+          gen.make(this.createToken(item.right));
           defaultValue[name] = gen.toString();
         }
       }
@@ -3881,6 +3884,23 @@ var Context = class _Context extends Token_default {
   }
   get dependencies() {
     return this.#dependencies;
+  }
+  #hooks = [];
+  addHook(hook) {
+    this.#hooks.push(hook);
+  }
+  getHooks() {
+    return this.#hooks;
+  }
+  getLayouts(imports, body, externals, exports2) {
+    return [
+      ...imports,
+      ...this.beforeBody,
+      ...body,
+      ...this.afterBody,
+      ...externals,
+      ...exports2
+    ];
   }
   addBuildAfterDep(dep) {
     const ctx = this.plugin.context;
@@ -9152,6 +9172,8 @@ async function buildProgram(ctx, compilation, graph, generatorClass = Generator_
       ctx.createToken(item);
     });
   }
+  let hooks = ctx.getHooks();
+  await Promise.allSettled(hooks.map((hook) => hook()));
   ctx.crateRootAssets();
   ctx.createAllDependencies();
   let exportNodes = null;
@@ -9166,17 +9188,10 @@ async function buildProgram(ctx, compilation, graph, generatorClass = Generator_
   imports.push(...importNodes, ...exportNodes.imports);
   body.push(...exportNodes.declares);
   exports2.push(...exportNodes.exports);
-  let layout = [
-    ...imports,
-    ...ctx.beforeBody,
-    ...body,
-    ...ctx.afterBody,
-    ...externals,
-    ...exports2
-  ];
-  if (layout.length > 0) {
+  let layouts = ctx.getLayouts(imports, body, externals, exports2);
+  if (layouts.length > 0) {
     let generator = new generatorClass(ctx);
-    layout.forEach((item) => generator.make(item));
+    layouts.forEach((item) => generator.make(item));
     graph.code = generator.code;
     graph.sourcemap = generator.sourceMap ? generator.sourceMap.toJSON() : null;
     if (emitFile) {
@@ -9542,6 +9557,11 @@ import_Diagnostic.default.register("transform", (definer) => {
     10111,
     `[es-transform] "@Router"\u6CE8\u89E3\u7B26\u4E2D\u6307\u5B9A\u7684\u8DEF\u7531\u63D0\u4F9B\u8005(%s)\u6CA1\u6709\u89E3\u6790\u5230\u8DEF\u7531`,
     `[es-transform] Resolve route not found the '%s' in the @Router`
+  );
+  definer(
+    10112,
+    `[es-transform] \u6307\u5B9A\u8DEF\u7531\u65B9\u6CD5\u7684\u8BBF\u95EE\u6743\u9650\u53EA\u80FD\u4E3A'public'\u4FEE\u9970\u7B26`,
+    `[es-transform] Access permission of route method can only with the 'public' modifier`
   );
 });
 var plugins = /* @__PURE__ */ new Set();
