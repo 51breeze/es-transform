@@ -1487,10 +1487,12 @@ function parseRouteCompletePath(ctx, route, paramArg = null) {
     defaultArgumentNode = ctx.createObjectExpression(properties2);
   }
   let argumentNode = null;
-  if (import_Utils.default.isStack(paramArg)) {
-    argumentNode = ctx.createToken(paramArg.assigned ? paramArg.stack.right : paramArg.stack);
-  } else if (Node_default.is(paramArg)) {
-    argumentNode = paramArg;
+  if (paramArg) {
+    if (import_Utils.default.isStack(paramArg.stack)) {
+      argumentNode = ctx.createToken(paramArg.assigned ? paramArg.stack.right : paramArg.stack);
+    } else if (Node_default.is(paramArg)) {
+      argumentNode = paramArg;
+    }
   }
   if (argumentNode && defaultArgumentNode) {
     argumentNode = ctx.createCallExpression(
@@ -1530,12 +1532,12 @@ function createMainAnnotationNode(ctx, stack) {
   }
   return callMain;
 }
-function createRouteConfigNodeForHttpRequest(ctx, route, paramArg) {
+function createRouteConfigNodeForHttpRequest(ctx, route, paramArg = null) {
   if (!route) return null;
   let path7 = route.path;
   let defaultParams = [];
   let allowMethodNode = ctx.createArrayExpression(
-    route.method.split(",").map((val) => val.trim())
+    route.method.split(",").map((val) => ctx.createLiteral(val.trim()))
   );
   Object.keys(route.defaultValue).forEach((key) => {
     defaultParams.push(ctx.createProperty(
