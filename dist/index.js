@@ -894,9 +894,6 @@ function createRouteInstance(ctx, module2, owner, path7, method, meta = null, pa
       owner.error(10112);
     }
     action = owner.value();
-    if (!path7 && module2) {
-      path7 = module2.id + "/" + action;
-    }
     owner.params.forEach((item) => {
       if (item.isObjectPattern || item.isArrayPattern) {
         item.error(10107);
@@ -921,8 +918,13 @@ function createRouteInstance(ctx, module2, owner, path7, method, meta = null, pa
       params.push({ name, optional });
     });
   }
+  if (!path7 && action) {
+    path7 = action;
+  }
   let pathName = path7 ? String(path7).trim() : action;
+  let isModuleId = false;
   if (!pathName) {
+    isModuleId = true;
     pathName = module2.id;
   }
   let startsCode = pathName.charCodeAt(0);
@@ -938,10 +940,14 @@ function createRouteInstance(ctx, module2, owner, path7, method, meta = null, pa
     const annotation = getModuleAnnotations(module2, ["router"]);
     const route = parseRouteAnnotation(ctx, annotation[0]);
     if (route) {
+      hasFull = true;
       pathName = route.path + "/" + pathName;
-    } else if (options.routePathWithNamespace && module2.namespace) {
-      pathName = module2.namespace.getChain().concat(pathName).join("/");
+    } else if (!isModuleId) {
+      pathName = module2.id + "/" + pathName;
     }
+  }
+  if (!hasFull && options.routePathWithNamespace && module2.namespace) {
+    pathName = module2.namespace.getChain().concat(pathName).join("/");
   }
   if (pathName.charCodeAt(pathName.length - 1) === 47) {
     pathName = pathName.slice(0, -1);
@@ -949,11 +955,16 @@ function createRouteInstance(ctx, module2, owner, path7, method, meta = null, pa
   if (!pathName.startsWith("/")) {
     pathName = "/" + pathName;
   }
+  let fullname = module2.getName("/");
+  if (action) {
+    fullname += "/" + action;
+  }
   let data = {
     isRoute: true,
     isWebComponent,
     isRouterModule,
     path: pathName,
+    name: fullname,
     action,
     params,
     defaultValue,
@@ -1169,7 +1180,7 @@ function getModuleRoutes(ctx, module2, allows = ["router"]) {
       return result;
     }
     let route = createRouteInstance(
-      ctx.options,
+      ctx,
       module2,
       null,
       module2.id,
@@ -1198,7 +1209,7 @@ function getMethodRoutes(ctx, methodStack, allows = allRouteMethods) {
     if (result) {
       return result;
     }
-    let route = createRouteInstance(ctx.options, methodStack.module, methodStack, null, "*");
+    let route = createRouteInstance(ctx, methodStack.module, methodStack, null, "*");
     route.isNonAnnotation = true;
     let data = [route];
     Cache.set(methodStack, "isPermissibleRouteProvider", data);
@@ -1333,7 +1344,7 @@ function createHttpAnnotationNode(ctx, stack) {
   const result = parseHttpAnnotation(ctx, stack);
   if (!result) return null;
   const { param, method, data, config } = result.args;
-  const route = getMethodRoutes(result.method, allRouteMethods, ctx.options);
+  const route = getMethodRoutes(ctx, result.method, allRouteMethods)[0];
   if (!route) {
     let path7 = result.module.getName() + ":" + result.method.value();
     stack.error(10102, path7);
@@ -1529,7 +1540,7 @@ function createRouteConfigNodeForHttpRequest(ctx, route, paramArg) {
   Object.keys(route.defaultValue).forEach((key) => {
     defaultParams.push(ctx.createProperty(
       ctx.createIdentifier(key),
-      ctx.createChunkExpression(route.defaultValue[key], false)
+      Node_default.is(route.defaultValue[key]) ? route.defaultValue[key] : ctx.createChunkExpression(route.defaultValue[key], false)
     ));
   });
   if (route.params.length > 0) {
