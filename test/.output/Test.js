@@ -24,6 +24,7 @@ function Test(name,age){
         value:{
             bbss:'bbss',
             age:40,
+            fn:null,
             _increValue:0,
             len:5,
             currentIndex:0
@@ -33,6 +34,7 @@ function Test(name,age){
     const map = new Map();
     map.set('name',[]);
     map.forEach((item)=>{});
+    this[_private0].fn=()=>1;
 }
 Class.creator(Test,{
     m:513,
@@ -118,6 +120,10 @@ Class.creator(Test,{
         age:{
             m:2064
         },
+        fn:{
+            m:2056,
+            writable:true
+        },
         positionName:{
             m:544,
             value:function positionName(){
@@ -138,6 +144,7 @@ Class.creator(Test,{
                     let isDev = false;
                     isDev=true;
                     expect(true).toBe(isDev);
+                    expect(1).toBe(Reflect.call(Test,this,"fn",[]));
                 });
                 it(`static get uuName accessor`,()=>{
                     expect(Test.getClassObject().uuName).toBe("uuName");

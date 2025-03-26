@@ -1,6 +1,7 @@
 require("./asstes/Person-4c6b0d54.js");
 const Class = require("./Class.js");
 const TestInterface = require("./com/TestInterface.js");
+const System = require("./System.js");
 const _private0 = Class.getKeySymbols("9a8cd9ba");
 function Person(name){
     this.addressName=`the Person properyt "addressName"`;
@@ -31,6 +32,23 @@ Class.creator(Person,{
         _type:{
             m:2056,
             writable:true
+        },
+        asyncMethod:{
+            m:544,
+            value:async function asyncMethod(){
+                let data = await System.createHttpRequest(net_Http,{
+                    url:"/com/Person/list",
+                    allowMethod:["post"],
+                    param:{
+                        tag:this[_private0]._name
+                    }
+                });
+                const params = {}
+                params.viewId=6;
+                return System.createHttpRoute("/person/<viewId?>",Object.assign({
+                    viewId:6
+                },params));
+            }
         },
         target:{
             m:576,

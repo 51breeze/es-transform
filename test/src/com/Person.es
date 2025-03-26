@@ -11,5 +11,10 @@ package com
         constructor(){
            this.hasOwnProperty("name");
         }
+
+        @Post
+        list(){
+            return [];
+        }
     }
 }

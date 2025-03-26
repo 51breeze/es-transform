@@ -185,14 +185,13 @@ class MemberDescriptor{
             dataset.value = value;
             if(target){
                 dataset.resource = target;
-                if((mode & _Reflect.MODIFIER_STATIC) !== _Reflect.MODIFIER_STATIC){
+                if((mode & _Reflect.MODIFIER_STATIC) === _Reflect.MODIFIER_STATIC){
                     if(key in target)dataset.value = target[key];
                 }else{
                     if((mode & _Reflect.MODIFIER_PRIVATE) === _Reflect.MODIFIER_PRIVATE){
                         const privateChain = target[privateKey];
                         if(privateChain && key in privateChain){
                             dataset.resource = privateChain;
-                            dataset.value = privateChain[key];
                         }
                     }else if(key in target){
                         dataset.value = target[key];
@@ -338,7 +337,7 @@ class MemberDescriptor{
         if(typeof fn ==='function'){
             fn.call(thisArg, value);
         }else{
-            throw new ReferenceError(`Invoke getter is not exists on the key '${this.key}'.`)
+            throw new ReferenceError(`Invoke setter is not exists on the key '${this.key}'.`)
         }
     }
 
@@ -348,6 +347,14 @@ class MemberDescriptor{
         }else{
             throw new Error(`Set property value failed on the key '${this.key}'.`)
         }
+    }
+
+    getPropertyValue(){
+        let target = this._dataset.resource;
+        if(target){
+            return target[this.key];
+        }
+        return null;
     }
 }
 
@@ -572,7 +579,11 @@ const _Reflect = (function(_Reflect){
                     result = desc.getter.call(receiver);
                 }
             }else{
-                result = desc.value;
+                if(desc.isProperty()){
+                    result = desc.getPropertyValue();
+                }else{
+                    result = desc.value;
+                }
             }
         }
         return result === void 0 ? null : result;
@@ -616,21 +627,11 @@ const _Reflect = (function(_Reflect){
             throw new ReferenceError(`target.${propertyKey} inaccessible`);
         }else{
             if(desc.isAccessor()){
-                if(!desc.setter){
-                    throw new ReferenceError(`target.${propertyKey} setter is not exists.`);
-                }else{
-                    desc.setter.call(receiver, value);
-                }
+                desc.invokeSetter(receiver, value);
             }else if(desc.isMethod() || !desc.writable){
                 throw new ReferenceError(`target.${propertyKey} is readonly.`);
-            }else{
-                let object = target;
-                if(desc.isPrivate()){
-                    object = target[desc.privateKey];
-                }
-                if(object){
-                    object[propertyKey] = value;
-                }
+            }else if(desc.isProperty()){
+                desc.setPropertyValue(value);
             }
         }
         return value;
@@ -650,8 +651,6 @@ const _Reflect = (function(_Reflect){
         return flag === true ? val : result;
     }
 
-    
-    
     Reflect.getDescriptor=function getDescriptor(source, name=null, mode=null){
         if(source===null||source === void 0)return false;
         let {target, objClass, descriptor, isStatic} = getClassDescriptor(source)

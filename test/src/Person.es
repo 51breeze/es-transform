@@ -4,6 +4,8 @@ import com.TestInterface;
 
 import com.Skin;
 
+@Router(path='person', viewId?=6)
+@WebComponent
 public class Person<T> extends Object implements TestInterface , Add
 {
 
@@ -19,6 +21,13 @@ public class Person<T> extends Object implements TestInterface , Add
         when( Runtime(server) ){
             const skin = new Skin()
         }
+    }
+
+    async asyncMethod(){
+        let data = await @Http(com.Person, list, params={tag:this._name})
+         const params= {}
+        params.viewId = 6;
+        return @Router(Person, params) as string;
     }
 
     get target(){

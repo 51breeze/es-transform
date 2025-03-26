@@ -85,6 +85,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     */
     private const age:int=40;
 
+    private var fn = null;
+
     //@Embed('./assets/ss.css');
     //private img:string;
     
@@ -97,6 +99,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         const map = new Map<string,[]>();
         map.set('name', [] );
         map.forEach( item=>{})
+        this.fn = ()=>1;
     }
 
     @Alias(positionName, version='vue >= 3.0.0')
@@ -127,6 +130,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
                 isDev = true;
             }
             expect(true).toBe( isDev );
+
+            expect(1).toBe( this.fn() );
 
         })
 

@@ -743,8 +743,19 @@ function parseEnvAnnotation(ctx, stack) {
 function parseHttpAnnotation(ctx, stack) {
   const args = stack.getArguments();
   const indexes = annotationIndexers.http;
-  const [moduleClass, actionArg, paramArg, dataArg, methodArg, configArg] = indexes.map((key) => getAnnotationArgument(key, args, indexes));
-  const providerModule = moduleClass ? import_Namespace.default.globals.get(moduleClass.value) : null;
+  const [moduleClass, actionArg, paramArg, dataArg, methodArg, configArg] = getAnnotationArguments(args, indexes);
+  let providerModule = null;
+  if (moduleClass) {
+    if (moduleClass.stack && moduleClass.stack.isIdentifier) {
+      let desc = moduleClass.stack.descriptor();
+      if (import_Utils.default.isModule(desc)) {
+        providerModule = desc;
+      }
+    }
+    if (!providerModule) {
+      providerModule = import_Namespace.default.globals.get(moduleClass.value);
+    }
+  }
   if (!providerModule) {
     stack.error(10105, moduleClass.value);
   } else {
@@ -771,16 +782,21 @@ function parseHttpAnnotation(ctx, stack) {
 function parseRouterAnnotation(ctx, stack) {
   const args = stack.getArguments();
   const indexes = annotationIndexers.router;
-  const [moduleClass, actionArg, paramArg] = indexes.map((key) => {
-    let result = getAnnotationArgument(key, args, indexes);
-    if (!result && key === "param") {
-      result = getAnnotationArgument("params", args);
+  let [moduleClass, actionArg, paramArg] = getAnnotationArguments(args, indexes);
+  let module2 = null;
+  if (moduleClass) {
+    if (moduleClass.stack && moduleClass.stack.isIdentifier) {
+      let desc = moduleClass.stack.descriptor();
+      if (import_Utils.default.isModule(desc)) {
+        module2 = desc;
+      }
     }
-    return result;
-  });
-  const module2 = moduleClass ? import_Namespace.default.globals.get(moduleClass.value) : null;
+    if (!module2) {
+      module2 = import_Namespace.default.globals.get(moduleClass.value);
+    }
+  }
   if (!module2) {
-    stack.error(10105, moduleClass.value);
+    stack.warn(10105, moduleClass.value);
   } else {
     if (import_Utils.default.isModule(module2) && module2.isClass && stack.isModuleForWebComponent(module2)) {
       return {
@@ -793,7 +809,7 @@ function parseRouterAnnotation(ctx, stack) {
         module: module2
       };
     } else {
-      const method = actionArg ? module2.getMember(actionArg.value) : null;
+      let method = actionArg ? module2.getMember(actionArg.value) : null;
       if (!method || !import_Utils.default.isModifierPublic(method) || !(method.isMethodDefinition && !(method.isMethodGetterDefinition || method.isMethodSetterDefinition))) {
         (actionArg ? actionArg.stack : stack).error(10106, `${moduleClass.value}::${actionArg && actionArg.value}`);
       } else {
@@ -1069,11 +1085,20 @@ function getMethodAnnotations(methodStack, allows = [], inheritFlag = true) {
   Cache.set(methodStack, key, result);
   return result;
 }
+var pluralArgumentNames = {
+  "param": "params"
+};
 function getAnnotationArgument(name, args, indexes = null) {
   name = String(name).toLowerCase();
   let index = args.findIndex((item) => {
     const key = String(item.key).toLowerCase();
-    return key === name;
+    if (key === name) return true;
+    if (pluralArgumentNames[name] === key) return true;
+    if (item.stack && item.stack.isIdentifier) {
+      if (item.value === name) return true;
+      if (pluralArgumentNames[name] === item.value) return true;
+    }
+    return false;
   });
   if (index < 0 && indexes && Array.isArray(indexes)) {
     index = indexes.indexOf(name);
@@ -1085,7 +1110,38 @@ function getAnnotationArgument(name, args, indexes = null) {
   return args[index];
 }
 function getAnnotationArguments(args, indexes = []) {
-  return indexes.map((key) => getAnnotationArgument(key, args, indexes));
+  let hasNull = false;
+  let matched = [];
+  let results = indexes.map((name) => {
+    name = String(name).toLowerCase();
+    const pos = args.findIndex((item) => {
+      const key = String(item.key).toLowerCase();
+      if (key === name) return true;
+      if (pluralArgumentNames[name] === key) return true;
+      if (item.stack && item.stack.isIdentifier) {
+        if (item.value === name) return true;
+        if (pluralArgumentNames[name] === item.value) return true;
+      }
+      return false;
+    });
+    if (pos >= 0) {
+      matched.push(pos);
+      return args[pos];
+    }
+    hasNull = true;
+    return null;
+  });
+  if (hasNull) {
+    results = results.map((item, pos) => {
+      if (item != null) return item;
+      if (!matched.includes(pos)) {
+        const arg = args[pos];
+        if (arg && !arg.assigned) return arg;
+      }
+      return null;
+    });
+  }
+  return results;
 }
 function getAnnotationArgumentValue(argument) {
   return argument ? argument.value : null;
@@ -1443,7 +1499,7 @@ function createRouterAnnotationNode(ctx, stack) {
   }
 }
 function createRouteCompletePathNode(ctx, route, param = null, stack = null) {
-  if (!(route.params.length > 0)) {
+  if (!(route.params.length > 0) && !param) {
     return ctx.createLiteral(route.path);
   }
   let { routePath, argumentNode } = parseRouteCompletePath(ctx, route, param);
@@ -1548,7 +1604,7 @@ function createRouteConfigNodeForHttpRequest(ctx, route, paramArg = null) {
   if (route.params.length > 0) {
     path7 = [path7, ...route.params.map((item) => {
       let name = item.name;
-      if (name.optional) {
+      if (item.optional) {
         name += "?";
       }
       return `<${name}>`;
@@ -6747,7 +6803,7 @@ function Identifier_default(ctx, stack) {
     const isStatic = !!(desc.static || ownerModule.static || desc.isEnumProperty);
     const property = ctx.createIdentifier(stack.value(), stack);
     const modifier = import_Utils11.default.getModifierValue(desc);
-    var object = isStatic ? ctx.createIdentifier(ownerModule.id) : ctx.createThisExpression();
+    let object = isStatic ? ctx.createIdentifier(ownerModule.id) : ctx.createThisExpression();
     if (privateChain && desc.isPropertyDefinition && modifier === "private" && !isStatic) {
       object = ctx.createMemberExpression([
         object,
@@ -7469,13 +7525,16 @@ function createAttributeBindingEventNode(ctx, attribute, valueTokenNode) {
       if (expr.isCallExpression) {
         const isBind = expr.callee.isMemberExpression && expr.callee.property.value() === "bind" && expr.arguments.length > 0 && expr.arguments[0].isThisExpression;
         if (!isBind && valueTokenNode && valueTokenNode.type === "CallExpression") {
+          let disableCacheForVNode = valueTokenNode.arguments.length > 0;
           valueTokenNode.arguments.push(ctx.createIdentifier("...args"));
-          return ctx.createArrowFunctionExpression(
+          valueTokenNode = ctx.createArrowFunctionExpression(
             valueTokenNode,
             [
               ctx.createIdentifier("...args")
             ]
           );
+          valueTokenNode.disableCacheForVNode = disableCacheForVNode;
+          return valueTokenNode;
         }
       } else if (expr.isMemberExpression || expr.isIdentifier) {
         const desc = expr.description();
@@ -8323,7 +8382,7 @@ var import_Utils13 = __toESM(require("easescript/lib/core/Utils"));
 function checkVNodeType(type) {
   if (!type || type.isAnyType) return false;
   if (type.isUnionType) {
-    return type.elements.some((el) => checkVNodeType(el.type()));
+    return type.elements.every((el) => checkVNodeType(el.type()));
   }
   let origin = import_Utils13.default.getOriginType(type);
   if (origin && import_Utils13.default.isModule(origin)) {
@@ -8334,6 +8393,20 @@ function checkVNodeType(type) {
   return false;
 }
 function JSXExpressionContainer_default(ctx, stack) {
+  if (stack.expression.isMemberExpression || stack.expression.isIdentifier) {
+    const desc = stack.expression.descriptor();
+    if (desc && (!desc.isAccessor && desc.isMethodDefinition)) {
+      let object = ctx.createToken(stack.expression);
+      return ctx.createCallExpression(
+        ctx.createMemberExpression([
+          object,
+          ctx.createIdentifier("bind")
+        ]),
+        [ctx.createThisExpression()],
+        stack
+      );
+    }
+  }
   let node = ctx.createToken(stack.expression);
   if (node) {
     let isExplicitVNode = false;
@@ -8618,19 +8691,6 @@ function MemberExpression(ctx, stack) {
         object,
         propertyNode
       ]);
-    }
-  }
-  if (description && (!description.isAccessor && description.isMethodDefinition)) {
-    const pStack = stack.getParentStack((stack2) => !!(stack2.jsxElement || stack2.isBlockStatement || stack2.isCallExpression || stack2.isExpressionStatement));
-    if (pStack && pStack.jsxElement) {
-      return ctx.createCallExpression(
-        ctx.createMemberExpression([
-          ctx.createToken(stack.object),
-          propertyNode,
-          ctx.createIdentifier("bind")
-        ]),
-        [ctx.createThisExpression()]
-      );
     }
   }
   const node = ctx.createNode(stack);
@@ -9579,6 +9639,11 @@ import_Diagnostic.default.register("transform", (definer) => {
     10112,
     `[es-transform] \u6307\u5B9A\u8DEF\u7531\u65B9\u6CD5\u7684\u8BBF\u95EE\u6743\u9650\u53EA\u80FD\u4E3A'public'\u4FEE\u9970\u7B26`,
     `[es-transform] Access permission of route method can only with the 'public' modifier`
+  );
+  definer(
+    10113,
+    `[es-transform] "\u89E3\u6790\u5230\u7684\u8DEF\u7531\u6CA1\u6709\u5B9A\u4E49\u53C2\u6570\uFF0C\u6240\u4EE5\u5728"@Router"\u8868\u8FBE\u5F0F\u4E2D\u4E0D\u9700\u8981\u6307\u5B9A\u53C2\u6570`,
+    `[es-transform] Resolved route "%s" does not have defined parameters, so not need to specify the 'param' parameters in the "@Router"`
   );
 });
 var plugins = /* @__PURE__ */ new Set();
