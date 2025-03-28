@@ -5363,14 +5363,11 @@ var TableBuilder = class {
   constructor(plugin2) {
     this.#plugin = plugin2;
     this.#plugin.on("compilation:changed", (compilation) => {
-      let mainModule = compilation.mainModule;
-      if (mainModule.isStructTable) {
-        compilation.modules.forEach((module2) => {
-          if (module2.isStructTable) {
-            this.removeTable(module2.id);
-          }
-        });
-      }
+      compilation.modules.forEach((module2) => {
+        if (module2.isStructTable) {
+          this.removeTable(module2.id);
+        }
+      });
     });
   }
   createTable(ctx, stack) {
@@ -7166,7 +7163,9 @@ function createForMapNode(ctx, object, element, item, key, index, stack) {
   if (element.type === "ArrayExpression" && element.elements.length === 1) {
     element = element.elements[0];
   }
-  const node = ctx.createArrowFunctionExpression(element, params);
+  const node = ctx.createArrowFunctionExpression(ctx.createBlockStatement([
+    ctx.createReturnStatement(element)
+  ]), params);
   return ctx.createCallExpression(
     createStaticReferenceNode(ctx, stack, "System", "forMap"),
     [
@@ -7189,7 +7188,9 @@ function createForEachNode(ctx, refs, element, item, key, stack) {
       ctx.createIdentifier("map")
     ]),
     [
-      ctx.createArrowFunctionExpression(element, args)
+      ctx.createArrowFunctionExpression(ctx.createBlockStatement([
+        ctx.createReturnStatement(element)
+      ]), args)
     ]
   );
   return node;
@@ -7913,13 +7914,14 @@ function createAttributes(ctx, stack, data) {
     data.key = createElementKeyPropertyNode(ctx, stack);
   }
 }
+var conditionElements = ["if", "elseif", "else"];
 function createElementKeyPropertyNode(ctx, stack) {
   const keys2 = ctx.options.esx.complete.keys;
   const fills = Array.isArray(keys2) && keys2.length > 0 ? keys2 : null;
   const all = keys2 === true;
   if (fills || all) {
     let key = null;
-    let direName = null;
+    let direName = "*";
     let isForContext = false;
     if (all || fills.includes("for") || fills.includes("each")) {
       if (!stack.isDirective && stack.directives && Array.isArray(stack.directives)) {
@@ -7933,7 +7935,7 @@ function createElementKeyPropertyNode(ctx, stack) {
           }
         }
       }
-      if (!direName && stack.parentStack.isDirective && ["for", "each"].includes(stack.parentStack.openingElement.name.value())) {
+      if (!isForContext && stack.parentStack.isDirective && ["for", "each"].includes(stack.parentStack.openingElement.name.value())) {
         const attrs = stack.parentStack.openingElement.attributes;
         const argument = {};
         isForContext = true;
@@ -7944,25 +7946,26 @@ function createElementKeyPropertyNode(ctx, stack) {
         key = argument["index"] || argument["key"];
       }
     }
+    let isCondition = false;
     if (fills && fills.includes("condition")) {
       if (!stack.isDirective && stack.directives && Array.isArray(stack.directives)) {
-        let directive = stack.directives.find((directive2) => ["if", "elseif", "else"].includes(directive2.name.value().toLowerCase()));
-        if (directive) {
-          direName = directive.name.value().toLowerCase();
-        }
+        isCondition = stack.directives.some((directive) => conditionElements.includes(String(directive.name.value()).toLowerCase()));
       }
-      if (!isForContext && stack.parentStack.isDirective && ["if", "elseif", "else"].includes(stack.parentStack.openingElement.name.value())) {
-        direName = stack.parentStack.openingElement.name.value().toLowerCase();
+      if (!isCondition && !isForContext && stack.parentStack.isDirective) {
+        isCondition = conditionElements.includes(String(stack.parentStack.openingElement.name.value()).toLowerCase());
       }
     }
-    if (all || fills.includes(direName)) {
+    if (all || isCondition || fills.includes(direName)) {
+      let count = ctx.cache.get(stack.compilation, "createElementKeyPropertyNode::count");
+      if (count == null) count = 0;
+      ctx.cache.set(stack.compilation, "createElementKeyPropertyNode::count", ++count);
       return ctx.createProperty(
         ctx.createIdentifier("key"),
         isForContext ? ctx.createBinaryExpression(
-          ctx.createLiteral(getDepth(stack) + "."),
+          ctx.createLiteral(count + "-"),
           ctx.createIdentifier(key || "key"),
           "+"
-        ) : ctx.createLiteral(getDepth(stack))
+        ) : ctx.createLiteral(count)
       );
     }
   }
@@ -8224,19 +8227,6 @@ function createElementNode(ctx, stack, data, children) {
   } else {
     return ctx.createVNodeHandleNode(stack, name);
   }
-}
-function getDepth(stack) {
-  let parentStack = stack.parentStack;
-  while (parentStack) {
-    if (parentStack.isJSXElement || parentStack.isJSXExpressionContainer || parentStack.isMethodDefinition || parentStack.isBlockStatement || parentStack.isProgram) break;
-    parentStack = parentStack.parentStack;
-  }
-  if (parentStack && (parentStack.isJSXElement || parentStack.isJSXExpressionContainer)) {
-    const index = stack.childIndexAt;
-    const prefix = getDepth(parentStack);
-    return prefix ? prefix + "." + index : index;
-  }
-  return stack.childIndexAt;
 }
 function getChildren(stack) {
   return stack.children.filter((child) => {
@@ -9722,13 +9712,15 @@ var Plugin = class _Plugin extends import_events.default {
     if (this.#watched) return;
     this.#watched = true;
     this.complier.on("onChanged", (compilation) => {
-      this.records.delete(compilation);
-      let cache = this.context.cache;
-      if (cache) {
-        compilation.modules.forEach((module2) => cache.clear(module2));
-        cache.clear(compilation);
+      if (compilation) {
+        this.records.delete(compilation);
+        let cache = this.context.cache;
+        if (cache) {
+          compilation.modules.forEach((module2) => cache.clear(module2));
+          cache.clear(compilation);
+        }
+        this.emit("compilation:changed", compilation);
       }
-      this.emit("compilation:changed", compilation);
     });
   }
   async init() {
@@ -9812,7 +9804,7 @@ function getAllPlugin() {
 // package.json
 var package_default = {
   name: "@easescript/transform",
-  version: "0.0.7",
+  version: "0.1.1",
   description: "Code Transform Based For EaseScript Plugin",
   main: "dist/index.js",
   scripts: {
