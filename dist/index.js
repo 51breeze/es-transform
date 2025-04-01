@@ -9987,7 +9987,7 @@ function getAllPlugin() {
 // package.json
 var package_default = {
   name: "@easescript/transform",
-  version: "0.1.1",
+  version: "0.1.2",
   description: "Code Transform Based For EaseScript Plugin",
   main: "dist/index.js",
   scripts: {
