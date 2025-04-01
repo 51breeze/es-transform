@@ -6,4 +6,8 @@ package com{
         method( name:string, age:int):any
         [key:string]:string
     }
+
+    public interface TestInterface2 {
+      
+    }
 }

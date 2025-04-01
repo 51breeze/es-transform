@@ -26,4 +26,13 @@ Class.creator(TestInterface,{
         }
     }
 });
-module.exports=TestInterface;
+function TestInterface2(){}
+Class.creator(TestInterface2,{
+    m:514,
+    ns:"com",
+    name:"TestInterface2"
+});
+module.exports={
+    default:TestInterface,
+    TestInterface2:TestInterface2
+}

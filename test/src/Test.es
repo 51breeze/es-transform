@@ -243,17 +243,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             expect(res).toEqual([1,"s","test"]);
         })
 
-        it("test Event Dispatcher",()=>{
-            const d = new EventDispatcher();
-            d.addEventListener('eee',(e)=>{
-                e.data = {name:'event'};
-            });
-            const event = new Event('eee')
-            d.dispatchEvent( event );
-            expect({name:'event'}).toEqual( event.data );
-        })
-
-         it("test System.getQualifiedObjectName",()=>{
+        it("test System.getQualifiedObjectName",()=>{
            
             expect('Test').toEqual( System.getQualifiedObjectName(this) );
             expect('String').toEqual( System.getQualifiedObjectName( new String('') ) );
@@ -272,6 +262,15 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             this.bbss = bs;
 
             expect({bbss:bs}).toEqual({bbss});
+         })
+
+
+         it("test decorate",()=>{
+            let dec = new Decorate();
+            expect({ age: 'Decorator(30) 注入的默认参数', name: 'Decorator(张三) 注入的默认参数' }).toEqual(dec.getInfo());
+
+            dec.person('李四');
+            expect({ age: 'Decorator(30) 注入的默认参数', name: 'checkParam(0) 拦截的参数(李四)' }).toEqual(dec.getInfo());
          })
 
          const objs= {
@@ -297,6 +296,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
        param.start();
 
        this.chian()
+
+       
 
     }
 

@@ -4,10 +4,9 @@ const config = Class.getExportDefault(require("./config.js"));
 const {name,child_name,child_config,name:php} = require("./config.js");
 const System = require("./System.js");
 const Person = require("./Person.js");
-const TestInterface = require("./com/TestInterface.js");
+const TestInterface = Class.getExportDefault(require("./com/TestInterface.js"));
 const Reflect = require("./Reflect.js");
-const EventDispatcher = require("./EventDispatcher.js");
-const Event = require("./Event.js");
+const Decorate = require("./Decorate.js");
 const Param = require("./unit/Param.js");
 const Types = require("./Types.js");
 const _private0 = Class.getKeySymbols("87c0e9be");
@@ -236,19 +235,6 @@ Class.creator(Test,{
                     const res = this.restFun(1,"s","test");
                     expect(res).toEqual([1,"s","test"]);
                 });
-                it("test Event Dispatcher",()=>{
-                    const d = new EventDispatcher();
-                    d.addEventListener('eee',(e)=>{
-                        e.data={
-                            name:'event'
-                        }
-                    });
-                    const event = new Event('eee');
-                    d.dispatchEvent(event);
-                    expect({
-                        name:'event'
-                    }).toEqual(event.data);
-                });
                 it("test System.getQualifiedObjectName",()=>{
                     expect('Test').toEqual(System.getQualifiedObjectName(this));
                     expect('String').toEqual(System.getQualifiedObjectName(new String('')));
@@ -268,6 +254,18 @@ Class.creator(Test,{
                     }).toEqual({
                         bbss:this[_private0].bbss
                     });
+                });
+                it("test decorate",()=>{
+                    let dec = new Decorate();
+                    expect({
+                        age:'Decorator(30) 注入的默认参数',
+                        name:'Decorator(张三) 注入的默认参数'
+                    }).toEqual(dec.getInfo());
+                    dec.person('李四');
+                    expect({
+                        age:'Decorator(30) 注入的默认参数',
+                        name:'checkParam(0) 拦截的参数(李四)'
+                    }).toEqual(dec.getInfo());
                 });
                 const objs = {
                     setup:async function(){}

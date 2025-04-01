@@ -1,6 +1,6 @@
 require("./asstes/Person-4c6b0d54.js");
 const Class = require("./Class.js");
-const TestInterface = require("./com/TestInterface.js");
+const TestInterface = Class.getExportDefault(require("./com/TestInterface.js"));
 const System = require("./System.js");
 const _private0 = Class.getKeySymbols("9a8cd9ba");
 function Person(name){

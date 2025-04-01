@@ -2,7 +2,7 @@ package web.components{
 
     import Component from 'webComponent'
     @WebComponent
-    declare class Component implements IEventDispatcher {
+    declare class Component {
         static getAttribute<T>(target:Component,name:string):T;
         static getPolyfillValue(value:any, name:string, classModule:class<any>):any;
         public constructor(props?:{[key:string]:any});
@@ -41,10 +41,6 @@ package web.components{
         * 获取原始对象中的属性
         */
         public getAttribute<T>(name:string):T;
-        public addEventListener(type: string, listener: (event?:Event)=>void):this;
-        public dispatchEvent(event: Event):boolean;
-        public removeEventListener(type: string, listener?: (event?:Event)=>void):boolean;
-        public hasEventListener(type: string, listener?: (event?:Event)=>void):boolean;
     }
 
     declare type NodeElementType = Component;

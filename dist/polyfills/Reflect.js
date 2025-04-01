@@ -769,6 +769,46 @@ const _Reflect = (function(_Reflect){
        return Reflect.getDescriptor(target, null, mode);
     }
 
+    Reflect.decorate=function decorate(decorators, target, propertyKey, descriptor){
+        if(!decorators || !Array.isArray(decorators)){
+            throw new Error('decorators must is an array')
+        }
+        const len = arguments.length;
+        let result = void 0;
+        if(len>2){
+            if(!descriptor || propertyKey == null){
+                throw new Error('decorators missing descriptor or propertyKey')
+            }
+        }
+        const context = {
+            decorators,
+            target,
+            result
+        }
+        for(let i=decorators.length-1;i>=0;i--){
+            const decorator = decorators[i];
+            context.currentIndex = i;
+            context.currentDecorator = decorator;
+            if(len>2){
+                decorator(descriptor, propertyKey, context);
+            }else{
+                result = decorator(result||target, 'constructor', context);
+                if(result){
+                    if(typeof result ==='function'){
+                        context.result = result;
+                    }else{
+                        throw new Error('Decorator returned result must is function')
+                    }
+                }
+            }
+        }
+        return context.result || (len>2 ? descriptor : target);
+    };
+
+    Reflect.decorateParam=function decorateParam(index, decorator){
+        return (target, key, context)=>decorator(target, key, index, context);
+    }
+
     return Reflect;
 
 }(Reflect));
