@@ -5,8 +5,9 @@ class Decorator implements com.IDecorator{
     @Callable
     constructor(key, name, age){
         let des = Array.from(arguments).slice(1);
-        return function(target){
-            return function Con(){
+        return function(target:Function){
+            let isClass = target.toString().startsWith('class ');
+            function Con(){
                 let _args = Array.from(arguments);
                 for(let i=0;i<des.length;i++){
                     if(_args[i]==null){
@@ -15,8 +16,13 @@ class Decorator implements com.IDecorator{
                         _args[i] = `Decorator(${des[i]}) 拦截的参数(${_args[i]})`
                     }
                 }
-                Reflect.apply(target, this, _args)
+                if(isClass){
+                    return Reflect.construct(target, _args, Con);
+                }else{
+                    Reflect.apply(target, this, _args)
+                }
             }
+            return Con
         }
     }
    

@@ -3,6 +3,8 @@ import * as Conf1 from 'config2.es';
 
 import com.Person;
 
+import com.TestInterface;
+
 System.setConfig('ssss', 222)
 
 
@@ -12,6 +14,8 @@ config.env = 'prod';
 
 
 new Person()
+
+console.log( TestInterface , com.TestInterface2)
 
 
 export var name = 'php';

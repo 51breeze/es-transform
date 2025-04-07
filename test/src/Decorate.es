@@ -10,7 +10,7 @@ class Decorate {
 
     @Fun
     address:string;
-
+    
     constructor(
         name?:string,
         age?:int 

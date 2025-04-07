@@ -4,6 +4,7 @@ const TestInterface = Class.getExportDefault(require("./com/TestInterface.js"));
 const System = require("./System.js");
 const _private0 = Class.getKeySymbols("9a8cd9ba");
 function Person(name){
+    Object.call(this);
     this.addressName=`the Person properyt "addressName"`;
     Object.defineProperty(this,_private0,{
         value:{
@@ -19,6 +20,7 @@ Class.creator(Person,{
     dynamic:true,
     private:_private0,
     imps:[TestInterface],
+    inherit:Object,
     members:{
         addressName:{
             m:520,

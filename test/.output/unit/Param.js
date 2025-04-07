@@ -1,9 +1,10 @@
 const Class = require("./../Class.js");
-function Param(){}
+class Param{}
 Class.creator(Param,{
     m:513,
     ns:"unit",
     name:"Param",
+    useClass:true,
     members:{
         start:{
             m:544,
