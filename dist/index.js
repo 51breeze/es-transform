@@ -5826,19 +5826,20 @@ function CallExpression_default(ctx, stack) {
   const module2 = stack.module;
   const isChainExpression = stack.parentStack.isChainExpression;
   if (stack.callee.isSuperExpression) {
+    let useClass = ctx.useClassConstructor(module2);
+    const parent = module2 && module2.inherit;
+    if (parent) {
+      if (!ctx.isActiveModule(parent, stack.module, true) || !useClass && ctx.isES6ClassModule(parent)) {
+        return null;
+      }
+      ctx.addDepend(parent, module2);
+    }
     if (ctx.useClassConstructor(module2)) {
       return ctx.createCallExpression(
         ctx.createSuperExpression(void 0, stack.callee),
         stack.arguments.map((item) => ctx.createToken(item)),
         stack
       );
-    }
-    const parent = module2 && module2.inherit;
-    if (parent) {
-      ctx.addDepend(parent, module2);
-      if (!ctx.isActiveModule(parent, stack.module, true) || ctx.isES6ClassModule(parent)) {
-        return null;
-      }
     }
   }
   if (isMember && !isChainExpression && (!desc || desc.isType && desc.isAnyType)) {
@@ -6092,11 +6093,11 @@ var ClassBuilder = class {
   }
   createImplements(ctx, module2, stack = null) {
     let iteratorModule = null;
-    this.implements = module2.implements.map((impModule, index) => {
+    this.implements = module2.implements.map((impModule) => {
       if (impModule.isInterface && ctx.isActiveModule(impModule, module2, true)) {
-        ctx.addDepend(impModule, module2);
         iteratorModule = iteratorModule || import_Namespace3.default.globals.get("Iterator");
         if (iteratorModule !== impModule) {
+          ctx.addDepend(impModule, module2);
           let refs = null;
           if (impModule.isDeclaratorModule) {
             let impStack = stack.implements.find((imp) => imp.type() === impModule);
@@ -6254,11 +6255,16 @@ var ClassBuilder = class {
     construct.key = this.getModuleIdNode();
     if (this.checkNeedInitPrivateNode()) {
       let body = construct.body.body;
-      let appendAt = module2.inherit ? 1 : 0;
-      let els = [
-        ...this.initProperties,
-        this.appendDefinePrivatePropertyNode(ctx, ...this.privateProperties)
-      ];
+      let hasInherit = module2.inherit && this.inherit;
+      let appendAt = hasInherit ? 1 : 0;
+      let els = [];
+      if (hasInherit && construct.isDefaultConstructMethod && !construct.hasCallSupper) {
+        appendAt = 0;
+        els.push(this.createCallSuperNode(ctx));
+        construct.hasCallSupper = true;
+      }
+      els.push(...this.initProperties);
+      els.push(this.appendDefinePrivatePropertyNode(ctx, ...this.privateProperties));
       body.splice(appendAt, 0, ...els);
     }
   }
@@ -6366,44 +6372,70 @@ var ClassBuilder = class {
     }
     return node;
   }
+  createCallSuperNode(ctx, params = []) {
+    let refs = null;
+    let inheritStack = this.stack.inherit;
+    let inherit = this.module.inherit;
+    if (inherit.isDeclaratorModule && import_Utils10.default.isStack(inheritStack) && inheritStack.isIdentifier) {
+      let desc = inheritStack.description();
+      if (import_Utils10.default.isStack(desc) && desc.isDeclarator) {
+        refs = inheritStack.value();
+      }
+    }
+    if (!refs) {
+      refs = ctx.getModuleReferenceName(inherit, this.module);
+    }
+    let args = null;
+    if (this.inherit && this.stack.isModuleForWebComponent(this.module.inherit)) {
+      const propsNode = ctx.createMemberExpression([
+        ctx.createIdentifier("arguments"),
+        ctx.createLiteral(0)
+      ]);
+      propsNode.computed = true;
+      args = propsNode;
+    } else {
+      args = params.length > 0 ? params : ctx.createIdentifier("arguments");
+    }
+    if (this.useClassConstructor) {
+      let _args2 = Array.isArray(args) ? args : args.value === "arguments" ? [ctx.createSpreadElement(args)] : [args];
+      return ctx.createCallExpression(
+        ctx.createSuperExpression(),
+        _args2
+      );
+    }
+    let _args = Array.isArray(args) ? ctx.createArrayExpression(args) : args.value === "arguments" ? args : ctx.createArrayExpression([args]);
+    return ctx.createCallExpression(
+      ctx.createMemberExpression(
+        [
+          ctx.createIdentifier(refs),
+          ctx.createIdentifier("apply")
+        ]
+      ),
+      [
+        ctx.createThisExpression(),
+        _args
+      ]
+    );
+  }
   createDefaultConstructor(ctx, id, inherit = null, params = []) {
     const block = ctx.createBlockStatement();
-    if (inherit && !this.useClassConstructor && !ctx.isES6ClassModule(inherit)) {
-      let refs = null;
-      let inheritStack = this.stack.inherit;
-      if (inherit.isDeclaratorModule && import_Utils10.default.isStack(inheritStack) && inheritStack.isIdentifier) {
-        let desc = inheritStack.description();
-        if (import_Utils10.default.isStack(desc) && desc.isDeclarator) {
-          refs = inheritStack.value();
-        }
-      }
-      if (!refs) {
-        refs = ctx.getModuleReferenceName(inherit, this.module);
-      }
-      const se = ctx.createSuperExpression(refs);
-      const args = params.length > 0 ? ctx.createArrayExpression(params) : ctx.createIdentifier("arguments");
+    let hasCallSupper = false;
+    if (inherit && this.inherit && !(this.useClassConstructor || ctx.isES6ClassModule(inherit))) {
+      hasCallSupper = true;
       block.body.push(
         ctx.createExpressionStatement(
-          ctx.createCallExpression(
-            ctx.createMemberExpression(
-              [
-                se,
-                ctx.createIdentifier("apply")
-              ]
-            ),
-            [
-              ctx.createThisExpression(),
-              args
-            ]
-          )
+          this.createCallSuperNode(ctx, params)
         )
       );
     }
-    return ctx.createMethodDefinition(
+    const node = ctx.createMethodDefinition(
       id,
       block,
       params
     );
+    node.hasCallSupper = hasCallSupper;
+    node.isDefaultConstructMethod = true;
+    return node;
   }
   createMemberDescriptor(ctx, node) {
     if (node.dynamic && node.type === "PropertyDefinition") {
@@ -8459,6 +8491,9 @@ function createSlotElementNode(ctx, stack, children) {
 function createDirectiveElementNode(ctx, stack, children) {
   const openingElement = stack.openingElement;
   const name = openingElement.name.value().toLowerCase();
+  if (!children) {
+    children = createCommentVNode(ctx, "child is null");
+  }
   switch (name) {
     case "custom":
     case "show":
@@ -8625,10 +8660,10 @@ function createElement(ctx, stack) {
     nodeElement = createSlotElementNode(ctx, stack, childNodes);
   } else if (stack.isDirective) {
     if (childNodes && childNodes.type == "ArrayExpression") {
-      if (childNodes.elements.length === 1) {
-        childNodes = childNodes.elements[0];
-      } else {
+      if (childNodes.elements.length > 1) {
         childNodes = createFragmentVNode(ctx, childNodes);
+      } else {
+        childNodes = childNodes.elements[0];
       }
     }
     nodeElement = createDirectiveElementNode(ctx, stack, childNodes);
