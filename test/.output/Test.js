@@ -140,6 +140,9 @@ Class.creator(Test,{
                     expect(System.is(this,TestInterface)).toBeTrue();
                     expect('function').toBe(typeof this['positionName']);
                     expect('postion').toBe(this.positionName());
+                    expect(true).toBe(typeof str === "string");
+                    expect(true).toBe(true);
+                    expect(false).toBe(typeof str === "number");
                     let isDev = false;
                     isDev=true;
                     expect(true).toBe(isDev);
@@ -503,7 +506,7 @@ Class.creator(Test,{
                 var sss = obj.getClassTestGenerics(1,1);
                 var type = this;
                 type instanceof Number;
-                type instanceof Number;
+                true;
                 type;
                 var bb = {
                     a:'',

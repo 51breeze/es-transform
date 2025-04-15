@@ -99,22 +99,9 @@ const Class={
         return (mode & value) === mode;
     },
 
-    isInterfaceModule(module){
-        const descriptor = Class.getClassDescriptor(module)
-        if(!Class.isModuleDescriptor(descriptor))return false;
-        return Class.isModifier('KIND_INTERFACE', descriptor.m);
-    },
-
-    isClassModule(module){
-        const descriptor = Class.getClassDescriptor(module)
-        if(!Class.isModuleDescriptor(descriptor))return false;
-        return Class.isModifier('KIND_CLASS', descriptor.m);
-    },
-
-    isEnumModule(module){
-        const descriptor = Class.getClassDescriptor(module)
-        if(!Class.isModuleDescriptor(descriptor))return false;
-        return Class.isModifier('KIND_ENUM', descriptor.m);
+    isInterface(moduleDescriptor){
+        if(!Class.isModuleDescriptor(moduleDescriptor))return false;
+        return Class.isModifier('KIND_INTERFACE', module.m);
     },
 
     isModuleDescriptor(moduleDescriptor){
@@ -244,6 +231,17 @@ const Class={
         if(!moduleClass)return null;
         moduleClass = Class.getClassConstructor(moduleClass);
         return moduleClass[privateKey] || null;
+    },
+    getObjectDescriptor(object){
+        if(!object)return null;
+        object = object[bindClassKey] || object;
+        if(object){
+            if(typeof object ==='function'){
+                return Class.getClassDescriptor(object);
+            }
+            return Class.getClassDescriptor(object.constructor);
+        }
+        return null;
     },
     getClassByName:function(name){
         return __MODULES__[name] || null;

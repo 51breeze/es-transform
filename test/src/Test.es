@@ -125,6 +125,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             expect('function').toBe( typeof this['positionName'] );
             expect('postion').toBe( this.postion() );
 
+            expect(true).toBe( str is string );
+            expect(true).toBe( this.start is Function );
+            expect(false).toBe( str is number );
+
             let isDev = false;
             when(Env(NODE_ENV, development) && Runtime(client)){
                 isDev = true;

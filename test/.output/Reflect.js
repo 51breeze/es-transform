@@ -342,7 +342,7 @@ const _Reflect = (function(_Reflect){
     };
     const hasOwn = Object.prototype.hasOwnProperty;
     function isFun(target){
-        return target && target.constructor === Function
+        return target && target.constructor === Function || typeof target ==='function';
     }
     function isClass(objClass){
         if( !objClass || !objClass.constructor)return false;

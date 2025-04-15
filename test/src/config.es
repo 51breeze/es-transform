@@ -17,6 +17,9 @@ new Person()
 
 console.log( TestInterface , com.TestInterface2)
 
+//这里是应用配置
+export const imgHost = 'http://127.0.0.1:8090/img';
+
 
 export var name = 'php';
 

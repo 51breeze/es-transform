@@ -12,6 +12,7 @@ new Person();
 console.log(TestInterface,com_TestInterface2);
 module.exports={
     ...(require("./config_child.js") || {}),
+    imgHost:'http://127.0.0.1:8090/img',
     name:'php',
     default:config,
     child_name,
