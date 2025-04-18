@@ -9747,7 +9747,7 @@ async function buildProgram(ctx, compilation, graph, generatorClass = Generator_
     }
   }
   imports.push(...importNodes, ...exportNodes.imports);
-  body.push(...exportNodes.declares);
+  externals.push(...exportNodes.declares);
   exports2.push(...exportNodes.exports);
   let layouts = ctx.getLayouts(imports, body, externals, exports2);
   if (layouts.length > 0) {
