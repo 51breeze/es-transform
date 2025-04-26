@@ -137,6 +137,11 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
             expect(1).toBe( this.fn() );
 
+            const spread = {name:'name'}
+            const {name='none'} = spread;
+            expect(name).toBe( 'name' );
+
+
         })
 
         it(`static get uuName accessor`, ()=>{

@@ -560,7 +560,8 @@ var annotationIndexers = {
   alias: ["name", "version"],
   hook: ["type", "version"],
   url: ["source"],
-  embed: ["path"]
+  embed: ["path"],
+  bindding: ["event", "alias"]
 };
 var compareOperatorMaps = {
   ">=": "egt",
@@ -2156,6 +2157,9 @@ function createESMExports(ctx, exportManage, graph) {
             return spec.local.declarations.map((decl) => {
               return ctx.createExportSpecifier(decl.id, decl.id, decl.stack);
             });
+          } else if (spec.local.type === "FunctionDeclaration" && spec.local.key) {
+            declares.push(spec.local);
+            return [ctx.createExportSpecifier(spec.local.key, spec.local.key, spec.stack)];
           }
           return [ctx.createExportSpecifier(spec.local, spec.exported, spec.stack)];
         }).flat()
@@ -3277,10 +3281,14 @@ var Generator2 = class {
             if (property.type === "RestElement") {
               this.make(property);
             } else {
-              this.make(property.key);
-              if (property.init && (property.init.type === "AssignmentPattern" || property.key.value !== property.init.value)) {
-                this.withColon();
+              if (property.init && property.init.type === "AssignmentPattern") {
                 this.make(property.init);
+              } else {
+                this.make(property.key);
+                if (property.init && property.key.value !== property.init.value) {
+                  this.withColon();
+                  this.make(property.init);
+                }
               }
             }
             if (index < token.properties.length - 1) {
@@ -4297,12 +4305,16 @@ var Context = class _Context extends Token_default {
         }
       }
       if (!name) {
-        name = context.getReferenceNameByModule(module2);
+        name = context.getReferenceNameByModule(module2, true);
+        if (name) {
+          return name;
+        }
       }
     } else if (import_Utils5.default.isCompilation(context)) {
-      name = context.getReferenceName(module2);
+      name = context.getReferenceName(module2, null, true);
+      if (name) return name;
     }
-    if (this.hasDeclareModule(module2)) {
+    if (name && this.hasDeclareModule(module2)) {
       return name;
     }
     if (!name) {
@@ -8023,8 +8035,8 @@ function getBinddingEventName(stack) {
   const bindding = getMethodAnnotations(stack, ["bindding"]);
   if (bindding.length > 0) {
     const [annot] = bindding;
-    const args = annot.getArguments();
-    return getAnnotationArgumentValue(args[0]);
+    const [args, result] = parseAnnotationArguments(annot.getArguments(), annotationIndexers.bindding);
+    return result;
   }
   return null;
 }
@@ -8232,15 +8244,25 @@ function createAttributes(ctx, stack, data) {
         }
       }
     }
+    let binddingEventName = null;
     if (item.isMemberProperty) {
-      if (ns === "@binding" && attrLowerName === "value") {
-        data.props.push(
-          createPropertyNode(
-            propName,
-            propValue
-          )
-        );
-        propName = "modelValue";
+      if (ns === "@binding") {
+        const bindding = getBinddingEventName(item.description());
+        if (bindding) {
+          if (bindding.alias) {
+            propName = bindding.alias;
+          }
+          binddingEventName = toCamelCase(bindding.event);
+        } else if (attrLowerName === "value") {
+          bindValuePropName = propName;
+          data.props.push(
+            createPropertyNode(
+              propName,
+              propValue
+            )
+          );
+          propName = "modelValue";
+        }
       }
       if (!isDOMAttribute) {
         data.props.push(
@@ -8277,14 +8299,11 @@ function createAttributes(ctx, stack, data) {
           ...createBinddingParams(!stack.isWebComponent)
         ), "on");
       } else if ((stack.isWebComponent || afterDirective) && binddingModelValue) {
-        let eventName = propName;
-        if (propName === "modelValue") {
-          eventName = "update:modelValue";
-        }
-        if (item.isMemberProperty) {
-          let _name = getBinddingEventName(item.description());
-          if (_name) {
-            eventName = toCamelCase(_name);
+        let eventName = binddingEventName;
+        if (!eventName) {
+          eventName = propName;
+          if (propName === "modelValue") {
+            eventName = "update:modelValue";
           }
         }
         pushEvent(
@@ -9830,8 +9849,10 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
   }
   async function build(compiOrVModule) {
     if (records2.has(compiOrVModule)) {
+      plugin2.complier.printLogInfo(`[build-cached] file:${compiOrVModule.file || compiOrVModule.getName()}`, "es-transform");
       return records2.get(compiOrVModule);
     }
+    plugin2.complier.printLogInfo(`[build] file:${compiOrVModule.file || compiOrVModule.getName()}`, "es-transform");
     let ctx = makeContext(compiOrVModule);
     let buildGraph = ctx.getBuildGraph(compiOrVModule);
     records2.set(compiOrVModule, buildGraph);
@@ -9854,8 +9875,10 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
   }
   async function buildDeps(compiOrVModule) {
     if (records2.has(compiOrVModule)) {
+      plugin2.complier.printLogInfo(`[build-deps-cached] file:${compiOrVModule.file || compiOrVModule.getName()}`, "es-transform");
       return records2.get(compiOrVModule);
     }
+    plugin2.complier.printLogInfo(`[build-deps] file:${compiOrVModule.file || compiOrVModule.getName()}`, "es-transform");
     let ctx = makeContext(compiOrVModule);
     let buildGraph = ctx.getBuildGraph(compiOrVModule);
     records2.set(compiOrVModule, buildGraph);
@@ -10219,6 +10242,7 @@ var Plugin = class _Plugin extends import_events.default {
   }
   clear(compilation) {
     if (this.#initialized) {
+      this.complier.printLogInfo(`[clear-build-cache] file:${compilation.file}`, "es-transform");
       this.records.delete(compilation);
       const cache = this.context.cache;
       if (cache) {
