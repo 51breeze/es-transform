@@ -90,8 +90,9 @@ System.isArray=function isArray(object){
     return Array.isArray(object); 
 }
 
-System.isObject=function isObject(object){
-    return typeof object === 'object';
+System.isObject=function isObject(value){
+    if(!value)return false;
+    return typeof value === 'object' || value instanceof Object;
 }
 
 System.toArray=function toArray(object){

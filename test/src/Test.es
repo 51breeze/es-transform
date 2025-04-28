@@ -125,6 +125,12 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             expect('function').toBe( typeof this['positionName'] );
             expect('postion').toBe( this.postion() );
 
+            let unknown:any = []
+            expect(true).toBe(unknown is number[]);
+            expect(false).toBe(unknown is class<any>);
+            expect(true).toBe(Test is Object);
+            expect(false).toBe(unknown is boolean);
+
             expect(true).toBe( str is string );
             expect(true).toBe( this.start is Function );
             expect(false).toBe( str is number );
