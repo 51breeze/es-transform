@@ -2,7 +2,7 @@ package;
 
 import com.TestInterface;
 
-import com.Skin;
+// import com.Skin;
 
 @Router(path='person', viewId?=6)
 @WebComponent
@@ -18,9 +18,13 @@ public class Person<T> extends Object implements TestInterface , Add
     constructor( name:string ){
         super();
         this._name = name;
-        when( Runtime(server) ){
-            const skin = new Skin()
-        }
+        // when( Runtime(server) ){
+        //     const skin = new Skin()
+        // }
+        // const skin = new Skin()
+        name is Array;
+        this is Person
+        this is Add
     }
 
     async asyncMethod(){

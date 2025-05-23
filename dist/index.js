@@ -3696,6 +3696,8 @@ __export(Constant_exports, {
   KIND_ENUM_PROPERTY: () => KIND_ENUM_PROPERTY,
   KIND_INTERFACE: () => KIND_INTERFACE,
   KIND_METHOD: () => KIND_METHOD,
+  KIND_STRUCT: () => KIND_STRUCT,
+  KIND_STRUCT_COLUMN: () => KIND_STRUCT_COLUMN,
   KIND_VAR: () => KIND_VAR,
   MODIFIER_ABSTRACT: () => MODIFIER_ABSTRACT,
   MODIFIER_FINAL: () => MODIFIER_FINAL,
@@ -3719,6 +3721,8 @@ var MODIFIER_PROTECTED = 1 << 10;
 var MODIFIER_PRIVATE = 1 << 11;
 var MODIFIER_ABSTRACT = 1 << 12;
 var MODIFIER_FINAL = 1 << 13;
+var KIND_STRUCT = 1 << 14;
+var KIND_STRUCT_COLUMN = 1 << 15;
 var PRIVATE_NAME = "_private";
 
 // lib/core/VirtualModule.js
@@ -5912,8 +5916,10 @@ function BinaryExpression_default(ctx, stack) {
           stack
         );
       } else if (import_Utils9.default.isModule(type)) {
-        if (type.isDeclaratorModule && !ctx.isVModule(type) && !ctx.isDeclaratorModuleDependency(type)) {
+        if (type.isDeclaratorModule && !ctx.isVModule(type) && import_Utils9.default.isInterface(type) && !ctx.isDeclaratorModuleDependency(type)) {
           objectType = ctx.createIdentifier("Object");
+        } else {
+          origin = import_Utils9.default.getOriginType(type);
         }
       } else {
         origin = import_Utils9.default.getOriginType(type);
@@ -5921,7 +5927,7 @@ function BinaryExpression_default(ctx, stack) {
     }
     if (objectType) {
       right = objectType;
-    } else if (origin && !stack.right.hasLocalDefined()) {
+    } else if (origin && !stack.right.hasLocalDefined() && import_Utils9.default.isModule(origin)) {
       ctx.addDepend(origin, stack.module);
       right = ctx.createIdentifier(
         ctx.getModuleReferenceName(origin, stack.module, stack)
@@ -6090,6 +6096,7 @@ var modifierMaps = {
 var kindMaps = {
   "accessor": KIND_ACCESSOR,
   "var": KIND_VAR,
+  "column": KIND_STRUCT_COLUMN,
   "const": KIND_CONST,
   "method": KIND_METHOD,
   "enumProperty": KIND_ENUM_PROPERTY
@@ -6404,11 +6411,12 @@ var ClassBuilder = class {
     );
   }
   appendDefinePrivatePropertyNode(ctx, ...propertyNodes) {
-    const node = this.createDefinePrivatePropertyNode(ctx);
     if (propertyNodes.length > 0) {
+      const node = this.createDefinePrivatePropertyNode(ctx);
       node.expression.arguments[2].properties[0].init.properties.push(...propertyNodes);
+      return node;
     }
-    return node;
+    return null;
   }
   checkNeedInitPrivateNode() {
     return this.privateProperties.length > 0 || this.initProperties.length > 0;
@@ -6428,7 +6436,10 @@ var ClassBuilder = class {
         construct.hasCallSupper = true;
       }
       els.push(...this.initProperties);
-      els.push(this.appendDefinePrivatePropertyNode(ctx, ...this.privateProperties));
+      const privateChainNode = this.appendDefinePrivatePropertyNode(ctx, ...this.privateProperties);
+      if (privateChainNode) {
+        els.push(privateChainNode);
+      }
       body.splice(appendAt, 0, ...els);
     }
   }
@@ -6464,7 +6475,7 @@ var ClassBuilder = class {
       if (!child) return;
       const staticFlag = !!(stack.static || child.static);
       const refs = staticFlag ? this.methods : this.members;
-      if (child.type === "PropertyDefinition") {
+      if (child.type === "PropertyDefinition" && !item.computed) {
         this.createInitMemberProperty(ctx, child, item, staticFlag);
       }
       if (item.isMethodSetterDefinition || item.isMethodGetterDefinition) {
@@ -6713,7 +6724,7 @@ var ClassBuilder = class {
   }
   createClassDescriptor(ctx, module2, methods, members) {
     const properties2 = [];
-    let kind = module2.isEnum ? KIND_CLASS : module2.isInterface ? KIND_INTERFACE : KIND_CLASS;
+    let kind = module2.isEnum ? KIND_CLASS : module2.isStructTable ? KIND_STRUCT : module2.isInterface ? KIND_INTERFACE : KIND_CLASS;
     kind |= MODIFIER_PUBLIC;
     if (module2.static) {
       kind |= MODIFIER_STATIC;
@@ -7223,6 +7234,7 @@ function ForOfStatement_default(ctx, stack) {
         stack.right
       )
     );
+    init.kind = "let";
     init.declarations.push(ctx.createIdentifier(res));
     init.declarations.push(object);
     const condition = ctx.createChunkExpression(`${obj} && (${res}=${obj}.next()) && !${res}.done`, false);
@@ -7381,6 +7393,7 @@ var modifierMaps2 = {
 var kindMaps2 = {
   "accessor": KIND_ACCESSOR,
   "var": KIND_VAR,
+  "column": KIND_STRUCT_COLUMN,
   "const": KIND_CONST,
   "method": KIND_METHOD,
   "enumProperty": KIND_ENUM_PROPERTY
@@ -7390,16 +7403,16 @@ var InterfaceBuilder = class extends ClassBuilder_default {
     ctx.setNode(this.stack, this);
     const module2 = this.module;
     const stack = this.stack;
+    this.isStructTable = stack.isStructTableDeclaration;
     this.setModuleIdNode(ctx.createIdentifier(this.getModuleDeclarationId(module2)));
     this.createInherit(ctx, module2, stack);
     this.createImplements(ctx, module2, stack);
     this.createBody(ctx, module2, stack);
-    let methods = this.createMemberDescriptors(ctx, this.methods);
     let members = this.createMemberDescriptors(ctx, this.members);
     let creator = this.createCreator(
       ctx,
       this.getModuleIdNode(),
-      this.createClassDescriptor(ctx, module2, methods, members)
+      this.createClassDescriptor(ctx, module2, null, members)
     );
     ctx.crateModuleAssets(module2);
     ctx.createModuleImportReferences(module2);
@@ -7420,10 +7433,26 @@ var InterfaceBuilder = class extends ClassBuilder_default {
   }
   createBody(ctx, module2, stack) {
     this.createMemebers(ctx, stack);
-    if (!this.construct) {
-      this.construct = this.createDefaultConstructor(ctx, module2.id, module2.inherit);
+    this.construct = this.createDefaultConstructor(ctx, module2.id, module2.inherit);
+  }
+  createMemeber(ctx, stack, staticFlag = false) {
+    if (this.isStructTable) {
+      if (stack.isStructTableColumnDefinition) {
+        const node = ctx.createNode(stack, "PropertyDefinition");
+        node.modifier = "public";
+        node.kind = "column";
+        node.key = ctx.createIdentifier(stack.key.value(), stack.key);
+        node.comments = createCommentsNode(ctx, stack);
+        return node;
+      }
+      return null;
+    } else {
+      const node = ctx.createToken(stack);
+      if (node) {
+        this.createAnnotations(ctx, stack, node, !!(staticFlag || node.static));
+      }
+      return node;
     }
-    this.checkConstructor(ctx, this.construct, module2);
   }
   createMemberDescriptor(ctx, node) {
     if (node.dynamic && node.type === "PropertyDefinition") {
@@ -8068,7 +8097,7 @@ function createElementPropsNode(ctx, data, stack, excludes = null) {
   });
   const props = items.length > 0 ? ctx.createObjectExpression(items) : null;
   if (props && stack && stack.isComponent) {
-    const desc = stack.description();
+    const desc = stack.descriptor();
     if (desc && import_Utils14.default.isModule(desc)) {
       let has = getModuleAnnotations(desc, ["hook"]).some((annot) => {
         let result = parseHookAnnotation(annot, ctx.plugin.version, ctx.options.metadata.versions);
@@ -8151,7 +8180,7 @@ function createAttributes(ctx, stack, data) {
     return stack2.scope.isForContext || !(stack2.isJSXElement || stack2.isJSXExpressionContainer);
   }, true);
   const inFor = forStack && forStack.scope && forStack.scope.isForContext ? true : false;
-  const descModule = stack.isWebComponent ? stack.description() : null;
+  const descModule = stack.isWebComponent ? stack.descriptor() : null;
   const definedEmits = getComponentEmitAnnotation(descModule);
   const getDefinedEmitName = (name) => {
     if (definedEmits && Object.prototype.hasOwnProperty.call(definedEmits, name)) {
@@ -8456,7 +8485,7 @@ function createElementKeyPropertyNode(ctx, stack) {
 }
 function createComponentDirectiveProperties(ctx, stack, data, callback = null) {
   if (stack) {
-    let desc = stack.description();
+    let desc = stack.descriptor();
     let parentIsComponentDirective = getComponentDirectiveAnnotation(desc);
     if (!parentIsComponentDirective) {
       parentIsComponentDirective = isDirectiveInterface(desc);
@@ -8690,8 +8719,10 @@ function createElementNode(ctx, stack, data, children) {
     if (stack.jsxRootElement === stack && stack.parentStack.isProgram) {
       name = ctx.createLiteral("div");
     } else {
-      const desc = stack.description();
-      if (import_Utils14.default.isModule(desc)) {
+      let desc = stack.description();
+      let isVar = stack.is(desc) && desc.isDeclarator;
+      if (!isVar) desc = desc.type();
+      if (!isVar && import_Utils14.default.isModule(desc)) {
         ctx.addDepend(desc, stack.module);
         name = ctx.createIdentifier(
           ctx.getModuleReferenceName(desc, stack.module)
@@ -8745,7 +8776,7 @@ function createElement(ctx, stack) {
   let isRoot = stack.jsxRootElement === stack;
   let children = getChildren(stack);
   let childNodes = makeNormalChildren(ctx, createChildren(ctx, children, data, stack));
-  let desc = stack.description();
+  let desc = stack.descriptor();
   let componentDirective = getComponentDirectiveAnnotation(desc);
   let nodeElement = null;
   if (stack.isDirective && stack.openingElement.name.value().toLowerCase() === "custom") {
@@ -9376,6 +9407,8 @@ function StructTableDeclaration_default(ctx, stack) {
   ctx.table.getAllBuilder().forEach(
     (build) => build.createTable(ctx, stack)
   );
+  const builder = new InterfaceBuilder_default(stack);
+  return builder.create(ctx);
 }
 
 // lib/tokens/StructTableKeyDefinition.js

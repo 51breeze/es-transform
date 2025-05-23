@@ -4,7 +4,7 @@ package com{
         set name(val:string):void
         avg<T extends string,B>(a:T,b?:B):T
         method( name:string, age:int):any
-        [key:string]:string
+        [keys:string]:string
     }
 
     public interface TestInterface2 {

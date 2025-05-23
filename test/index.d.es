@@ -1,6 +1,6 @@
 package web.components{
 
-    import Component from 'webComponent'
+    //import Component from 'webComponent'
     @WebComponent
     declare class Component {
         static getAttribute<T>(target:Component,name:string):T;

@@ -756,7 +756,7 @@ const _Reflect = (function(_Reflect){
                 break;
             }
         }
-        if(objClass && !descriptor){
+        if(objClass){
             return getObjectDescriptor(
                 typeof objClass ==='function' ? objClass.prototype : objClass,
                 name

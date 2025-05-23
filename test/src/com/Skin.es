@@ -2,7 +2,7 @@ package com;
 import web.components.Component;
 import com.State;
 
-@Runtime(server)
+//@Runtime(server)
 class Skin extends Component{
 
     public set state(vlaue:State){
@@ -27,9 +27,12 @@ class Skin extends Component{
 
     @override
     protected render(){
-        return <div>
-             <slot:foot />
-             <slot:default />
-        </div>;
+        const Bar = {} as Component
+        return null;
+        // return <div>
+        //         <Bar />
+        //      <slot:foot />
+        //      <slot:default />
+        // </div>;
     }
 }

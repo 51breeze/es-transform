@@ -82,6 +82,16 @@ System.isInterface=function isInterface(classObject){
     return desc ? Class.isModifier('KIND_INTERFACE', desc.m) : false;
 }
 
+System.isEnum=function isStruct(classObject){
+    const desc = Class.getClassDescriptor(classObject);
+    return desc ? Class.isModifier('KIND_ENUM', desc.m) : false;
+}
+
+System.isStruct=function isStruct(classObject){
+    const desc = Class.getClassDescriptor(classObject);
+    return desc ? Class.isModifier('KIND_STRUCT', desc.m) : false;
+}
+
 System.isFunction=function isFunction(target){
    return target && target.constructor === Function || typeof target ==='function';
 }
