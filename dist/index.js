@@ -44,13 +44,14 @@ var import_Diagnostic = __toESM(require("easescript/lib/core/Diagnostic"));
 var import_path6 = __toESM(require("path"));
 
 // lib/core/Builder.js
-var import_Utils23 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils27 = __toESM(require("easescript/lib/core/Utils"));
 
 // lib/core/Context.js
 var import_path2 = __toESM(require("path"));
 var import_fs2 = __toESM(require("fs"));
 
 // lib/core/Node.js
+var import_Utils = __toESM(require("easescript/lib/core/Utils"));
 var Node = class _Node {
   static is(value) {
     return value ? value instanceof _Node : false;
@@ -60,8 +61,8 @@ var Node = class _Node {
   }
   constructor(type, stack = null) {
     this.type = type;
-    if (stack && stack.node && stack.node.loc) {
-      this.loc = stack.node.loc;
+    if (import_Utils.default.isStack(stack)) {
+      this.loc = stack.getLocation();
     }
   }
 };
@@ -430,9 +431,10 @@ var Token_default = Token;
 // lib/core/Common.js
 var import_fs = __toESM(require("fs"));
 var import_path = __toESM(require("path"));
-var import_Utils2 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils4 = __toESM(require("easescript/lib/core/Utils"));
 
 // lib/core/Cache.js
+var import_Utils2 = __toESM(require("easescript/lib/core/Utils"));
 function createCache() {
   const records2 = /* @__PURE__ */ new Map();
   function set(key, name, value) {
@@ -460,7 +462,18 @@ function createCache() {
     return false;
   }
   function clear(key) {
+    if (import_Utils2.default.isCompilation(key)) {
+      key.modules.forEach((module2) => {
+        records2.delete(module2);
+      });
+      records2.forEach((v, stack) => {
+        if (stack && stack.compilation === key) {
+          records2.delete(stack);
+        }
+      });
+    }
     let dataset2 = records2.get(key);
+    records2.delete(key);
     if (dataset2) {
       dataset2.clear(key);
       return true;
@@ -476,7 +489,8 @@ function createCache() {
     has,
     del,
     clear,
-    clearAll
+    clearAll,
+    records: records2
   };
 }
 var records = /* @__PURE__ */ new Map();
@@ -498,11 +512,11 @@ var import_dotenv = __toESM(require("dotenv"));
 var import_dotenv_expand = __toESM(require("dotenv-expand"));
 
 // lib/core/DependFile.js
-var import_Utils = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils3 = __toESM(require("easescript/lib/core/Utils"));
 var dataset = /* @__PURE__ */ new Map();
 var DependFile = class _DependFile {
   static create(dir, files = []) {
-    dir = import_Utils.default.normalizePath(dir);
+    dir = import_Utils3.default.normalizePath(dir);
     let key = String(dir).toLowerCase();
     let instance = dataset.get(key);
     if (!instance) {
@@ -537,7 +551,7 @@ var DependFile = class _DependFile {
       }
       const dataset2 = this.#files || (this.#files = /* @__PURE__ */ new Set());
       files.forEach((file) => {
-        dataset2.add(import_Utils.default.normalizePath(file));
+        dataset2.add(import_Utils3.default.normalizePath(file));
       });
     }
   }
@@ -578,7 +592,7 @@ function beginNumericLiteral(value) {
   return beginNumericRE.test(value);
 }
 function isRouteAnnotation(annotation) {
-  if (import_Utils2.default.isStack(annotation) && annotation.isAnnotationDeclaration) {
+  if (import_Utils4.default.isStack(annotation) && annotation.isAnnotationDeclaration) {
     return allRouteMethods.includes(annotation.getLowerCaseName());
   }
   return false;
@@ -730,7 +744,7 @@ function parseReadfileAnnotation(ctx, stack) {
   let suffix = _suffix || [...extensions, ".json", ".env", ".js", ".css", ".scss", ".less"];
   const checkSuffix = (file) => {
     if (suffixPattern) {
-      return suffixPattern.test(filepath);
+      return suffixPattern.test(file);
     }
     if (suffix === "*") return true;
     return suffix.some((item) => file.endsWith(item));
@@ -744,7 +758,7 @@ function parseReadfileAnnotation(ctx, stack) {
     return [];
   };
   let files = stack.compiler.resolveFiles(dir).filter(checkSuffix).map((file) => {
-    file = import_Utils2.default.normalizePath(file);
+    file = import_Utils4.default.normalizePath(file);
     if (extractDir) {
       return [...getFileDirs(file), file];
     }
@@ -808,7 +822,7 @@ function parseHttpAnnotation(ctx, stack) {
   if (moduleClass) {
     if (moduleClass.stack && moduleClass.stack.isIdentifier) {
       let desc = moduleClass.stack.descriptor();
-      if (import_Utils2.default.isModule(desc)) {
+      if (import_Utils4.default.isModule(desc)) {
         providerModule = desc;
       }
     }
@@ -820,7 +834,7 @@ function parseHttpAnnotation(ctx, stack) {
     stack.error(10105, moduleClass.value);
   } else {
     const member = actionArg ? providerModule.getMember(actionArg.value) : null;
-    if (!member || !import_Utils2.default.isModifierPublic(member) || !(member.isMethodDefinition && !(member.isMethodGetterDefinition || member.isMethodSetterDefinition))) {
+    if (!member || !import_Utils4.default.isModifierPublic(member) || !(member.isMethodDefinition && !(member.isMethodGetterDefinition || member.isMethodSetterDefinition))) {
       (actionArg ? actionArg.stack : stack).error(10106, `${moduleClass.value}::${actionArg && actionArg.value}`);
     } else {
       return {
@@ -847,7 +861,7 @@ function parseRouterAnnotation(ctx, stack) {
   if (moduleClass) {
     if (moduleClass.stack && moduleClass.stack.isIdentifier) {
       let desc = moduleClass.stack.descriptor();
-      if (import_Utils2.default.isModule(desc)) {
+      if (import_Utils4.default.isModule(desc)) {
         module2 = desc;
       }
     }
@@ -858,7 +872,7 @@ function parseRouterAnnotation(ctx, stack) {
   if (!module2) {
     stack.warn(10105, moduleClass.value);
   } else {
-    if (import_Utils2.default.isModule(module2) && module2.isClass && stack.isModuleForWebComponent(module2)) {
+    if (import_Utils4.default.isModule(module2) && module2.isClass && stack.isModuleForWebComponent(module2)) {
       return {
         isWebComponent: true,
         args: {
@@ -870,7 +884,7 @@ function parseRouterAnnotation(ctx, stack) {
       };
     } else {
       let method = actionArg ? module2.getMember(actionArg.value) : null;
-      if (!method || !import_Utils2.default.isModifierPublic(method) || !(method.isMethodDefinition && !(method.isMethodGetterDefinition || method.isMethodSetterDefinition))) {
+      if (!method || !import_Utils4.default.isModifierPublic(method) || !(method.isMethodDefinition && !(method.isMethodGetterDefinition || method.isMethodSetterDefinition))) {
         (actionArg ? actionArg.stack : stack).error(10106, `${moduleClass.value}::${actionArg && actionArg.value}`);
       } else {
         return {
@@ -966,7 +980,7 @@ function createRouteInstance(ctx, module2, owner, path7, method, meta = null, pa
   let action = null;
   let options = ctx.options || emptyObject;
   if (!isWebComponent && owner && owner.isMethodDefinition) {
-    if (!import_Utils2.default.isModifierPublic(owner)) {
+    if (!import_Utils4.default.isModifierPublic(owner)) {
       owner.error(10112);
     }
     action = owner.value();
@@ -1118,7 +1132,7 @@ function parseAliasAnnotation(annotation, pluginVersion, optionVersions = {}) {
   return null;
 }
 function getModuleAnnotations(module2, allows = [], inheritFlag = true) {
-  if (!import_Utils2.default.isModule(module2) || !allows.length) return emptyArray;
+  if (!import_Utils4.default.isModule(module2) || !allows.length) return emptyArray;
   let key = `getModuleAnnotations:${String(inheritFlag)}:${allows.join("-")}`;
   let old = Cache.get(module2, key);
   if (old) return old;
@@ -1132,7 +1146,7 @@ function getModuleAnnotations(module2, allows = [], inheritFlag = true) {
   return result;
 }
 function getMethodAnnotations(methodStack, allows = [], inheritFlag = true) {
-  if (!import_Utils2.default.isStack(methodStack) || !(methodStack.isMethodDefinition || methodStack.isPropertyDefinition)) return emptyArray;
+  if (!import_Utils4.default.isStack(methodStack) || !(methodStack.isMethodDefinition || methodStack.isPropertyDefinition)) return emptyArray;
   let result = [];
   let key = `getMethodAnnotations:${String(inheritFlag)}:${allows.join("-")}`;
   let old = Cache.get(methodStack, key);
@@ -1284,7 +1298,7 @@ function compareVersion(left, right, operator = "elt") {
   return operator === "eq" || operator === "egt" || operator === "elt";
 }
 function getModuleRoutes(ctx, module2, allows = ["router"]) {
-  if (!import_Utils2.default.isModule(module2) || !module2.isClass) return [];
+  if (!import_Utils4.default.isModule(module2) || !module2.isClass) return [];
   const annotations = getModuleAnnotations(module2, allows);
   if (annotations && annotations.length) {
     return annotations.map((annotation) => {
@@ -1443,7 +1457,7 @@ function parseImportDeclaration(ctx, stack, context = null, graph = null) {
     const classModule = stack.description();
     if (classModule && classModule.isModule && ctx.isActiveModule(classModule) && ctx.isNeedBuild(classModule)) {
       let local = stack.alias ? stack.alias.value() : classModule.id;
-      let source = ctx.getModuleImportSource(classModule, import_Utils2.default.isModule(context) ? context : stack.compilation);
+      let source = ctx.getModuleImportSource(classModule, import_Utils4.default.isModule(context) ? context : stack.compilation);
       importSource = ctx.addImport(source, local, null, stack.source);
       importSource.setSourceTarget(classModule);
     }
@@ -1604,7 +1618,7 @@ function parseRouteCompletePath(ctx, route, paramArg = null) {
   }
   let argumentNode = null;
   if (paramArg) {
-    if (import_Utils2.default.isStack(paramArg.stack)) {
+    if (import_Utils4.default.isStack(paramArg.stack)) {
       argumentNode = ctx.createToken(paramArg.assigned ? paramArg.stack.right : paramArg.stack);
     } else if (Node_default.is(paramArg)) {
       argumentNode = paramArg;
@@ -1721,9 +1735,9 @@ function createReadfileAnnotationNode(ctx, stack) {
     const pid = import_path.default.dirname(file).toLowerCase();
     const named = import_path.default.basename(file, import_path.default.extname(file));
     const id = (pid + "/" + named).toLowerCase();
-    const filepath2 = result.relative ? ctx.compiler.getRelativeWorkspacePath(file) : file;
+    const filepath = result.relative ? ctx.compiler.getRelativeWorkspacePath(file) : file;
     let item = {
-      path: filepath2,
+      path: filepath,
       isFile: import_fs.default.statSync(file).isFile()
     };
     if (item.isFile && result.load) {
@@ -1813,10 +1827,10 @@ function createCJSImports(ctx, importManage, cache = null) {
         if (spec.type === "default") {
           const owner = importSource.getSourceTarget();
           let need = false;
-          if (import_Utils2.default.isModule(owner) && owner.compilation?.modules?.size > 1 && !owner.compilation.isDescriptorDocument()) {
+          if (import_Utils4.default.isModule(owner) && owner.compilation?.modules?.size > 1 && !owner.compilation.isDescriptorDocument()) {
             need = true;
           }
-          if (need || import_Utils2.default.isCompilation(owner)) {
+          if (need || import_Utils4.default.isCompilation(owner)) {
             requireNode = ctx.createCallExpression(
               createStaticReferenceNode(ctx, null, "Class", "getExportDefault"),
               [
@@ -1891,6 +1905,22 @@ function createESMImports(ctx, importManage) {
       }
     });
     if (importSource.specifiers.length > 0) {
+      let defaultSpecifiers = null;
+      if (importSource.specifiers.length > 1) {
+        defaultSpecifiers = specifiers.filter((node) => node.type === "ImportDefaultSpecifier");
+        while (defaultSpecifiers.length > 1) {
+          const node = defaultSpecifiers.shift();
+          const index = specifiers.indexOf(node);
+          specifiers.splice(index, 1);
+          imports.push(
+            ctx.createImportDeclaration(
+              importSource.sourceId,
+              [node],
+              importSource.stack
+            )
+          );
+        }
+      }
       imports.push(
         ctx.createImportDeclaration(
           importSource.sourceId,
@@ -2319,28 +2349,6 @@ function createCommentsNode(ctx, stack) {
   if (stack.module && (enable || manifests.comments)) {
     const result = stack.parseComments("Block");
     if (result) {
-      if (manifests.comments && result.meta) {
-        let kind = "class";
-        if (stack.isMethodSetterDefinition) {
-          kind = "setter";
-        } else if (stack.isMethodGetterDefinition) {
-          kind = "getter";
-        } else if (stack.isMethodDefinition) {
-          kind = "method";
-        } else if (stack.isPropertyDefinition) {
-          kind = "property";
-        }
-        const vm = ctx.getVModule("manifest.Comments");
-        if (vm) {
-          let id = stack.module.getName();
-          ctx.addDepend(vm);
-          let key = stack.value() + ":" + kind;
-          if (kind === "class") key = "top";
-          vm.append(ctx, {
-            [id]: { [key]: result.meta }
-          });
-        }
-      }
       if (enable && result.comments.length > 0) {
         return ctx.createChunkExpression(["/**", ...result.comments, "**/"].join("\n"), true);
       }
@@ -2384,7 +2392,7 @@ async function callAsyncSequence(items, asyncMethod) {
 }
 
 // lib/core/ImportSource.js
-var import_Utils3 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils5 = __toESM(require("easescript/lib/core/Utils"));
 var ImportManage = class {
   #records = /* @__PURE__ */ new Map();
   #locals = /* @__PURE__ */ new Map();
@@ -2434,8 +2442,8 @@ var ImportManage = class {
     return Array.from(this.#records.values()).sort((a, b) => {
       let m1 = a.getSourceTarget();
       let m2 = b.getSourceTarget();
-      let a1 = import_Utils3.default.isModule(m1) && m1.getName() === "Class" ? 0 : 1;
-      let b1 = import_Utils3.default.isModule(m2) && m2.getName() === "Class" ? 0 : 1;
+      let a1 = import_Utils5.default.isModule(m1) && m1.getName() === "Class" ? 0 : 1;
+      let b1 = import_Utils5.default.isModule(m2) && m2.getName() === "Class" ? 0 : 1;
       return a1 - b1;
     });
   }
@@ -2625,7 +2633,7 @@ var ExportSource = class {
 var import_Namespace2 = __toESM(require("easescript/lib/core/Namespace"));
 
 // lib/core/Generator.js
-var import_Utils4 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils6 = __toESM(require("easescript/lib/core/Utils"));
 var import_source_map = __toESM(require("source-map"));
 var disabledNewLine = false;
 var Generator2 = class {
@@ -2663,8 +2671,8 @@ var Generator2 = class {
   createSourceMapGenerator() {
     let target = this.context.target;
     let generator = new import_source_map.default.SourceMapGenerator();
-    let compi = import_Utils4.default.isModule(target) ? target.compilation : target;
-    if (import_Utils4.default.isCompilation(compi) && compi.source) {
+    let compi = import_Utils6.default.isModule(target) ? target.compilation : target;
+    if (import_Utils6.default.isCompilation(compi) && compi.source) {
       generator.setSourceContent(compi.file, compi.source);
     }
     return generator;
@@ -2871,7 +2879,7 @@ var Generator2 = class {
             if (token.semicolon && index < lines.length) {
               this.withSemicolon();
             }
-            if (index < lines.length && token.newLine !== false) {
+            if (index < lines.length - 1) {
               this.newLine();
             }
           });
@@ -3576,6 +3584,7 @@ var Generator2 = class {
             }
           } else {
             if (token.parent && token.parent.type === "ObjectExpression") {
+              this.addMapping(token);
               this.make(token.name);
               this.withColon();
               this.make(token.value);
@@ -3701,6 +3710,7 @@ __export(Constant_exports, {
   KIND_VAR: () => KIND_VAR,
   MODIFIER_ABSTRACT: () => MODIFIER_ABSTRACT,
   MODIFIER_FINAL: () => MODIFIER_FINAL,
+  MODIFIER_OPTIONAL: () => MODIFIER_OPTIONAL,
   MODIFIER_PRIVATE: () => MODIFIER_PRIVATE,
   MODIFIER_PROTECTED: () => MODIFIER_PROTECTED,
   MODIFIER_PUBLIC: () => MODIFIER_PUBLIC,
@@ -3710,19 +3720,20 @@ __export(Constant_exports, {
 var KIND_CLASS = 1 << 0;
 var KIND_INTERFACE = 1 << 1;
 var KIND_ENUM = 1 << 2;
-var KIND_VAR = 1 << 3;
-var KIND_CONST = 1 << 4;
-var KIND_METHOD = 1 << 5;
-var KIND_ACCESSOR = 1 << 6;
-var KIND_ENUM_PROPERTY = 1 << 7;
-var MODIFIER_STATIC = 1 << 8;
-var MODIFIER_PUBLIC = 1 << 9;
-var MODIFIER_PROTECTED = 1 << 10;
-var MODIFIER_PRIVATE = 1 << 11;
-var MODIFIER_ABSTRACT = 1 << 12;
-var MODIFIER_FINAL = 1 << 13;
-var KIND_STRUCT = 1 << 14;
-var KIND_STRUCT_COLUMN = 1 << 15;
+var KIND_STRUCT = 1 << 3;
+var KIND_VAR = 1 << 4;
+var KIND_CONST = 1 << 5;
+var KIND_METHOD = 1 << 6;
+var KIND_ACCESSOR = 1 << 7;
+var KIND_ENUM_PROPERTY = 1 << 8;
+var KIND_STRUCT_COLUMN = 1 << 9;
+var MODIFIER_STATIC = 1 << 10;
+var MODIFIER_PUBLIC = 1 << 11;
+var MODIFIER_PROTECTED = 1 << 12;
+var MODIFIER_PRIVATE = 1 << 13;
+var MODIFIER_ABSTRACT = 1 << 14;
+var MODIFIER_FINAL = 1 << 15;
+var MODIFIER_OPTIONAL = 1 << 16;
 var PRIVATE_NAME = "_private";
 
 // lib/core/VirtualModule.js
@@ -3999,7 +4010,7 @@ function getVirtualModuleManager(VirtualModuleFactory) {
 }
 
 // lib/core/Context.js
-var import_Utils5 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils7 = __toESM(require("easescript/lib/core/Utils"));
 var import_Range = __toESM(require("easescript/lib/core/Range"));
 var Context = class _Context extends Token_default {
   static is(value) {
@@ -4125,7 +4136,7 @@ var Context = class _Context extends Token_default {
     return this.virtuals.getVModule(sourceId);
   }
   useClassConstructor(module2) {
-    if (this.options.useClassConstructor && import_Utils5.default.isModule(module2)) {
+    if (this.options.useClassConstructor && import_Utils7.default.isModule(module2)) {
       return !(module2.isDecorator() || module2.isCallable());
     }
     return false;
@@ -4220,7 +4231,7 @@ var Context = class _Context extends Token_default {
     } else {
       if (isVModule(depModule)) return true;
       if (context) {
-        return !import_Utils5.default.checkDepend(context, depModule);
+        return !import_Utils7.default.checkDepend(context, depModule);
       }
       return true;
     }
@@ -4255,12 +4266,16 @@ var Context = class _Context extends Token_default {
     return result;
   }
   hasDeclareModule(module2) {
-    if (import_Utils5.default.isCompilation(this.target)) {
+    if (import_Utils7.default.isCompilation(this.target)) {
       if (this.target.modules.has(module2.getName())) {
         return true;
       }
       return this.target.importModuleNameds.has(module2);
-    } else if (import_Utils5.default.isModule(this.target)) {
+    } else if (import_Utils7.default.isModule(this.target)) {
+      const compi = this.target.compilation;
+      if (compi && compi.modules.has(module2.getName())) {
+        return true;
+      }
       const vm = this.getVModule(this.target.getName());
       if (vm) {
         return !!vm.getReferenceName(module2.getName());
@@ -4277,12 +4292,12 @@ var Context = class _Context extends Token_default {
   removeNode(stack) {
     this.#nodes.delete(stack);
   }
-  getHashId(len = 8) {
-    let target = this.#target;
-    if (import_Utils5.default.isCompilation(target)) {
+  getHashId(len = 8, target = null) {
+    target = target || this.#target;
+    if (import_Utils7.default.isCompilation(target)) {
       let file = target.file || Array.from(target.modules.values()).map((m) => m.getName()).join(",");
       return createUniqueHashId(file, len);
-    } else if (isVModule(target) || import_Utils5.default.isModule(target)) {
+    } else if (isVModule(target) || import_Utils7.default.isModule(target)) {
       return createUniqueHashId(target.getName(), len);
     } else {
       throw new Error("Invalid target");
@@ -4298,11 +4313,11 @@ var Context = class _Context extends Token_default {
       } else {
         module2 = m;
       }
-    } else if (!import_Utils5.default.isModule(module2)) {
+    } else if (!import_Utils7.default.isModule(module2)) {
       return null;
     }
     if (!context) context = this.target;
-    if (import_Utils5.default.isModule(context)) {
+    if (import_Utils7.default.isModule(context)) {
       if (context.isDeclaratorModule) {
         const vm = this.getVModule(context.getName());
         if (vm) {
@@ -4315,7 +4330,7 @@ var Context = class _Context extends Token_default {
           return name;
         }
       }
-    } else if (import_Utils5.default.isCompilation(context)) {
+    } else if (import_Utils7.default.isCompilation(context)) {
       name = context.getReferenceName(module2, null, true);
       if (name) return name;
     }
@@ -4328,7 +4343,7 @@ var Context = class _Context extends Token_default {
     return this.getGlobalRefName(stack, name);
   }
   isDeclaratorModuleDependency(module2, isExtend = false) {
-    if (!import_Utils5.default.isClassType(module2)) return false;
+    if (!import_Utils7.default.isClassType(module2)) return false;
     if (isExtend) return true;
     if (module2.required && module2.isAnnotationCreated) {
       return true;
@@ -4357,7 +4372,7 @@ var Context = class _Context extends Token_default {
     return this.compiler.isExtensionFile(resolveFile);
   }
   createDeclaratorModuleImportReferences(module2, context, graph = null) {
-    if (!import_Utils5.default.isModule(module2)) return;
+    if (!import_Utils7.default.isModule(module2)) return;
     if (!graph && context) {
       graph = this.getBuildGraph(context);
     }
@@ -4365,7 +4380,7 @@ var Context = class _Context extends Token_default {
     this.createModuleImportReferences(module2, context, graph);
   }
   createModuleImportReferences(module2, context = null, graph = null) {
-    if (!import_Utils5.default.isModule(module2)) return;
+    if (!import_Utils7.default.isModule(module2)) return;
     if (!graph) {
       graph = this.getBuildGraph(module2);
     }
@@ -4453,7 +4468,7 @@ var Context = class _Context extends Token_default {
     if (requires && requires.size > 0) {
       requires.forEach((item) => {
         let local = item.name;
-        if (import_Utils5.default.isStack(item.stack) && item.stack.parentStack && item.stack.parentStack.isAnnotationDeclaration) {
+        if (import_Utils7.default.isStack(item.stack) && item.stack.parentStack && item.stack.parentStack.isAnnotationDeclaration) {
           let additional = item.stack.parentStack.additional;
           if (additional && additional.isDeclaratorDeclaration && additional.module.id === local) {
             local = this.getModuleReferenceName(additional.module, context);
@@ -4501,7 +4516,7 @@ var Context = class _Context extends Token_default {
     }
   }
   crateModuleAssets(module2) {
-    if (!import_Utils5.default.isModule(module2)) return;
+    if (!import_Utils7.default.isModule(module2)) return;
     const graph = this.getBuildGraph(module2);
     this.createAssets(module2, graph);
     this.createRequires(module2, null, graph);
@@ -4516,12 +4531,12 @@ var Context = class _Context extends Token_default {
   }
   createAllDependencies(cache = null) {
     const target = this.target;
-    const compilation = import_Utils5.default.isCompilation(target) ? target : null;
+    const compilation = import_Utils7.default.isCompilation(target) ? target : null;
     this.#dependencies.forEach((deps, moduleOrCompi) => {
       const graph = this.getBuildGraph(moduleOrCompi);
       deps.forEach((depModule) => {
         if (cache && cache.has(depModule)) return;
-        let isMod = import_Utils5.default.isModule(depModule);
+        let isMod = import_Utils7.default.isModule(depModule);
         if (!(isMod || isVModule(depModule))) return;
         if (depModule === target || compilation && compilation.modules.has(depModule.getName())) {
           return;
@@ -4546,13 +4561,13 @@ var Context = class _Context extends Token_default {
     });
   }
   createModuleDependencies(module2) {
-    if (!import_Utils5.default.isModule(module2)) return;
+    if (!import_Utils7.default.isModule(module2)) return;
     let deps = this.getDependencies(module2);
     if (!deps) return;
     const graph = this.getBuildGraph(module2);
     const compilation = module2.compilation;
     deps.forEach((depModule) => {
-      if (!(import_Utils5.default.isModule(depModule) || isVModule(depModule))) return;
+      if (!(import_Utils7.default.isModule(depModule) || isVModule(depModule))) return;
       if (compilation && compilation.modules && compilation.modules.has(depModule.getName())) {
         return;
       }
@@ -4579,7 +4594,7 @@ var Context = class _Context extends Token_default {
     if (!module2 || compilation === module2) {
       return graphs.createBuildGraph(compilation);
     }
-    if (import_Utils5.default.isModule(module2)) {
+    if (import_Utils7.default.isModule(module2)) {
       if (module2.isDeclaratorModule) {
         const vm = this.getVModule(module2.getName());
         if (vm) {
@@ -4606,7 +4621,7 @@ var Context = class _Context extends Token_default {
   }
   getGlobalRefName(stack, name, objectKey = null) {
     if (!stack) {
-      if (import_Utils5.default.isModule(this.target)) {
+      if (import_Utils7.default.isModule(this.target)) {
         stack = this.target.compilation.stack;
       } else {
         stack = this.target.stack;
@@ -4628,7 +4643,7 @@ var Context = class _Context extends Token_default {
   }
   getLocalRefName(stack, name, objectKey = null) {
     if (!stack) {
-      if (import_Utils5.default.isModule(this.target)) {
+      if (import_Utils7.default.isModule(this.target)) {
         stack = this.target.compilation.stack;
       } else {
         stack = this.target.stack;
@@ -4650,7 +4665,7 @@ var Context = class _Context extends Token_default {
   }
   genLocalRefName(stack, name, objectKey = null) {
     if (!stack) {
-      if (import_Utils5.default.isModule(this.target)) {
+      if (import_Utils7.default.isModule(this.target)) {
         stack = this.target.compilation.stack;
       } else {
         stack = this.target.stack;
@@ -4672,7 +4687,7 @@ var Context = class _Context extends Token_default {
   }
   genGlobalRefName(stack, name, objectKey = null) {
     if (!stack) {
-      if (import_Utils5.default.isModule(this.target)) {
+      if (import_Utils7.default.isModule(this.target)) {
         stack = this.target.compilation.stack;
       } else {
         stack = this.target.stack;
@@ -4727,8 +4742,8 @@ var Context = class _Context extends Token_default {
       if (isVModule(target)) {
         target = target.bindModule || target;
       }
-      let owner = import_Utils5.default.isModule(target) ? target.compilation : target;
-      source = source.replace("${__filename}", import_Utils5.default.normalizePath(owner.file));
+      let owner = import_Utils7.default.isModule(target) ? target.compilation : target;
+      source = source.replace("${__filename}", import_Utils7.default.normalizePath(owner.file));
     }
     return source;
   }
@@ -4737,7 +4752,7 @@ var Context = class _Context extends Token_default {
     return flag && !result ? file : result;
   }
   getModuleMappingFolder(module2) {
-    if (import_Utils5.default.isModule(module2)) {
+    if (import_Utils7.default.isModule(module2)) {
       return this.resolveSourceFileMappingPath(module2.getName("/") + ".module", "folders");
     } else if (module2 && module2.file) {
       return this.resolveSourceFileMappingPath(module2.file, "folders");
@@ -4845,7 +4860,7 @@ var Context = class _Context extends Token_default {
     if (isStr) {
       filename = folder ? import_path2.default.basename(source) : this.compiler.getRelativeWorkspacePath(source, true) || this.genUniFileName(source);
     } else {
-      if (import_Utils5.default.isModule(source)) {
+      if (import_Utils7.default.isModule(source)) {
         if (source.isDeclaratorModule) {
           const vm = this.getVModule(source.getName()) || source;
           filename = folder ? vm.id : vm.getName("/");
@@ -4870,13 +4885,13 @@ var Context = class _Context extends Token_default {
     }
     let result = null;
     if (folder) {
-      result = import_Utils5.default.normalizePath(
+      result = import_Utils7.default.normalizePath(
         import_path2.default.resolve(
           import_path2.default.isAbsolute(folder) ? import_path2.default.join(folder, filename) : import_path2.default.join(output, folder, filename)
         )
       );
     } else {
-      result = import_Utils5.default.normalizePath(
+      result = import_Utils7.default.normalizePath(
         import_path2.default.resolve(
           import_path2.default.join(output, filename)
         )
@@ -4895,7 +4910,7 @@ var Context = class _Context extends Token_default {
     );
   }
   getRelativePath(source, context) {
-    return "./" + import_Utils5.default.normalizePath(
+    return "./" + import_Utils7.default.normalizePath(
       import_path2.default.relative(
         import_path2.default.dirname(context),
         source
@@ -4908,7 +4923,7 @@ var Context = class _Context extends Token_default {
     return local;
   }
   createDefaultRoutePathNode(module2) {
-    if (import_Utils5.default.isModule(module2)) {
+    if (import_Utils7.default.isModule(module2)) {
       return this.createLiteral("/" + module2.getName("/"));
     }
     return null;
@@ -4949,7 +4964,7 @@ var Context = class _Context extends Token_default {
   error(message, stack = null) {
     if (this.target) {
       let range = stack && stack instanceof import_Range.default ? stack : null;
-      if (!range && import_Utils5.default.isStack(stack)) {
+      if (!range && import_Utils7.default.isStack(stack)) {
         range = this.target.getRangeByNode(stack.node);
       }
       const file = this.target.file;
@@ -4959,12 +4974,12 @@ var Context = class _Context extends Token_default {
         message += `(${file})`;
       }
     }
-    import_Utils5.default.error(message);
+    import_Utils7.default.error(message);
   }
   warn(message, stack = null) {
     if (this.target) {
       let range = stack && stack instanceof import_Range.default ? stack : null;
-      if (!range && import_Utils5.default.isStack(stack)) {
+      if (!range && import_Utils7.default.isStack(stack)) {
         range = this.target.getRangeByNode(stack.node);
       }
       const file = this.target.file;
@@ -4974,13 +4989,13 @@ var Context = class _Context extends Token_default {
         message += `(${file})`;
       }
     }
-    import_Utils5.default.warn(message);
+    import_Utils7.default.warn(message);
   }
 };
 var Context_default = Context;
 
 // lib/core/Variable.js
-var import_Utils6 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils8 = __toESM(require("easescript/lib/core/Utils"));
 var import_Scope = __toESM(require("easescript/lib/core/Scope"));
 var REFS_All = 31;
 var REFS_TOP = 16;
@@ -5067,7 +5082,7 @@ function getVariableManager() {
   }
   function hasScopeDefined(context, name, isTop = false, flags = REFS_All) {
     let manage = getVariableManage(context, isTop);
-    if (import_Utils6.default.isStack(context)) {
+    if (import_Utils8.default.isStack(context)) {
       return manage.check(name, context.scope, flags);
     }
     return false;
@@ -5087,10 +5102,10 @@ function getVariableManager() {
     if (manage.has(name)) {
       return manage.get(name);
     }
-    return manage.getRefs(name, import_Utils6.default.isStack(context) ? context.scope : null, flags);
+    return manage.getRefs(name, import_Utils8.default.isStack(context) ? context.scope : null, flags);
   }
   function getVariableManage(context, isTop = false) {
-    if (import_Utils6.default.isStack(context)) {
+    if (import_Utils8.default.isStack(context)) {
       let scope = context.scope;
       if (!import_Scope.default.is(scope)) {
         throw new Error("Variable.getRefs scope invalid");
@@ -5110,7 +5125,7 @@ function getVariableManager() {
   }
   function genRefs(context, name, isTop = false, flags = REFS_DOWN | REFS_UP_FUN) {
     let manage = getVariableManage(context, isTop);
-    if (import_Utils6.default.isStack(context)) {
+    if (import_Utils8.default.isStack(context)) {
       return manage.gen(name, context.scope, flags);
     } else {
       return manage.gen(name, null, flags);
@@ -5325,7 +5340,7 @@ function getBuildGraphManager() {
 // lib/core/Asset.js
 var import_path3 = __toESM(require("path"));
 var import_fs3 = __toESM(require("fs"));
-var import_Utils7 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils9 = __toESM(require("easescript/lib/core/Utils"));
 var Asset = class {
   #code = "";
   #type = "";
@@ -5446,17 +5461,17 @@ var Asset = class {
       filename = import_path3.default.basename(filename, import_path3.default.extname(filename)) + ext;
     }
     if (folder) {
-      this.#outfile = import_Utils7.default.normalizePath(import_path3.default.join(outDir, folder, filename));
+      this.#outfile = import_Utils9.default.normalizePath(import_path3.default.join(outDir, folder, filename));
     } else {
       let relativeDir = ctx.plugin.complier.getRelativeWorkspace(sourceFile);
       if (relativeDir) {
         relativeDir = import_path3.default.dirname(relativeDir);
       }
       if (relativeDir) {
-        this.#outfile = import_Utils7.default.normalizePath(import_path3.default.join(outDir, folder || publicDir, relativeDir, filename));
+        this.#outfile = import_Utils9.default.normalizePath(import_path3.default.join(outDir, folder || publicDir, relativeDir, filename));
       } else {
         let _filename = ctx.genUniFileName(file) || filename;
-        this.#outfile = import_Utils7.default.normalizePath(import_path3.default.join(outDir, folder || publicDir, _filename));
+        this.#outfile = import_Utils9.default.normalizePath(import_path3.default.join(outDir, folder || publicDir, _filename));
       }
     }
   }
@@ -5555,38 +5570,142 @@ var TableBuilder = class {
   #records = /* @__PURE__ */ new Map();
   constructor(plugin2) {
     this.#plugin = plugin2;
-    this.#plugin.on("compilation:changed", (compilation) => {
+    const rebuild = (compilation) => {
+      if (!compilation) return;
+      let has = false;
       compilation.modules.forEach((module2) => {
         if (module2.isStructTable) {
-          this.removeTable(module2.id);
+          has = true;
+          this.removeTable(module2.getName());
         }
       });
+      if (has) {
+        plugin2.clear(compilation);
+        plugin2.build(compilation);
+      }
+    };
+    plugin2.on("compilation:changed", (compilation) => {
+      if (compilation) {
+        compilation.once("onParseDone", () => {
+          rebuild(compilation);
+        });
+      }
+    });
+    plugin2.on("compilation:refresh", (compilations) => {
+      if (Array.isArray(compilations)) {
+        compilations.forEach(rebuild);
+      }
     });
   }
   createTable(ctx, stack) {
-    if (!stack.body.length) return false;
     const module2 = stack.module;
-    if (this.hasTable(module2.id)) return false;
+    const defineAnnotations = getModuleAnnotations(module2, ["define"], false);
+    for (let defineAnnotation of defineAnnotations) {
+      const data = parseDefineAnnotation(defineAnnotation);
+      if (data.sql === false) {
+        return;
+      }
+    }
+    const key = module2.getName();
+    if (this.hasTable(key)) return false;
     const node = ctx.createNode(stack);
     node.id = ctx.createIdentifier("`" + normalName(stack.id.value()) + "`", stack.id);
     node.properties = [];
     node.body = [];
-    stack.body.forEach((item) => {
-      const token = createIdentNode(ctx, item);
-      if (token) {
-        if (item.isStructTablePropertyDefinition) {
-          node.properties.push(token);
-        } else {
-          node.body.push(token);
+    const cacheColumn = {};
+    const cacheOption = {};
+    const keys2 = [];
+    const make = (stack2) => {
+      const module3 = stack2.module;
+      stack2.body.forEach((item) => {
+        const token = createIdentNode(ctx, item);
+        if (item.isStructTableColumnDefinition) {
+          const key2 = item.key.value();
+          if (cacheColumn[key2] === true) {
+            return;
+          }
+          cacheColumn[key2] = true;
         }
+        if (token) {
+          if (item.isStructTableColumnDefinition) {
+            const methodNode = token.properties[0];
+            if (methodNode && methodNode.type === "StructTableMethodDefinition") {
+              if (methodNode.key && methodNode.params) {
+                const value = String(methodNode.key.value).toLowerCase();
+                if (value === "email" || value === "range") {
+                  methodNode.key.value = "varchar";
+                  if (value === "range") {
+                    const params = methodNode.params;
+                    if (params.length > 1) {
+                      methodNode.params = [params[params.length - 1]];
+                    }
+                  }
+                }
+              }
+            }
+          }
+          if (item.key && item.key.isIdentifier) {
+            const key2 = String(item.raw()).replace(/\s\t\r\n/g, "").toLowerCase();
+            if (cacheOption[key2] === true) {
+              return;
+            }
+            cacheOption[key2] = true;
+          }
+          if (item.isStructTablePropertyDefinition) {
+            node.properties.push(token);
+          } else {
+            if (item.isStructTableKeyDefinition) {
+              keys2.push(token);
+            } else {
+              node.body.push(token);
+            }
+          }
+        }
+      });
+      if (Array.isArray(module3.extends)) {
+        module3.extends.forEach((module4) => {
+          module4 = module4.type();
+          if (module4.isStructTable) {
+            module4.getStacks().forEach((stack3) => {
+              if (stack3.isStructTableDeclaration) {
+                make(stack3);
+              }
+            });
+          }
+        });
       }
-    });
+    };
+    make(stack);
+    const minValue = -9999;
+    const maxValue = 9999;
+    const defaultValue = 999;
+    const getOrder = (value) => {
+      if (value === "first") {
+        return minValue - 1;
+      } else if (value === "last") {
+        return maxValue + 1;
+      }
+      value = parseInt(value);
+      if (isNaN(value)) return defaultValue;
+      return Math.max(Math.min(value, maxValue), minValue);
+    };
+    const sroter = (a, b) => {
+      let a1 = getOrder(a.order || defaultValue);
+      let b1 = getOrder(b.order || defaultValue);
+      return a1 - b1;
+    };
+    node.body.sort(sroter);
+    keys2.sort(sroter);
+    node.body.push(...keys2);
     let gen = new Generator_default();
     gen.make(node);
-    this.#records.set(module2.id, gen.toString());
+    this.#records.set(key, gen.toString());
     this.#changed = true;
     this.build(ctx);
     return true;
+  }
+  get plugin() {
+    return this.#plugin;
   }
   get type() {
     return "";
@@ -5810,7 +5929,7 @@ function ArrowFunctionExpression_default(ctx, stack, type) {
 }
 
 // lib/tokens/AssignmentExpression.js
-var import_Utils8 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils10 = __toESM(require("easescript/lib/core/Utils"));
 function AssignmentExpression_default(ctx, stack) {
   const desc = stack.left.description();
   const module2 = stack.module;
@@ -5823,11 +5942,11 @@ function AssignmentExpression_default(ctx, stack) {
       if (!hasDynamic && desc && (desc.isProperty && desc.computed || desc.isPropertyDefinition && desc.dynamic)) {
         hasDynamic = true;
       }
-      if (!hasDynamic && !import_Utils8.default.isLiteralObjectType(stack.left.object.type())) {
+      if (!hasDynamic && !import_Utils10.default.isLiteralObjectType(stack.left.object.type())) {
         isReflect = true;
       }
     } else if (!desc || desc.isAnyType) {
-      isReflect = !import_Utils8.default.isLiteralObjectType(stack.left.object.type());
+      isReflect = !import_Utils10.default.isLiteralObjectType(stack.left.object.type());
     }
   }
   if (isReflect) {
@@ -5888,7 +6007,7 @@ function AwaitExpression_default(ctx, stack) {
 }
 
 // lib/tokens/BinaryExpression.js
-var import_Utils9 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils11 = __toESM(require("easescript/lib/core/Utils"));
 var import_Namespace3 = __toESM(require("easescript/lib/core/Namespace"));
 function BinaryExpression_default(ctx, stack) {
   let operator = stack.operator;
@@ -5915,23 +6034,25 @@ function BinaryExpression_default(ctx, stack) {
           ],
           stack
         );
-      } else if (import_Utils9.default.isModule(type)) {
-        if (type.isDeclaratorModule && !ctx.isVModule(type) && import_Utils9.default.isInterface(type) && !ctx.isDeclaratorModuleDependency(type)) {
+      } else if (import_Utils11.default.isModule(type)) {
+        if (type.isDeclaratorModule && !ctx.isVModule(type) && import_Utils11.default.isInterface(type) && !ctx.isDeclaratorModuleDependency(type)) {
           objectType = ctx.createIdentifier("Object");
-        } else {
-          origin = import_Utils9.default.getOriginType(type);
         }
       } else {
-        origin = import_Utils9.default.getOriginType(type);
+        origin = import_Utils11.default.getOriginType(type);
       }
     }
     if (objectType) {
       right = objectType;
-    } else if (origin && !stack.right.hasLocalDefined() && import_Utils9.default.isModule(origin)) {
+    } else if (origin && import_Utils11.default.isModule(origin)) {
       ctx.addDepend(origin, stack.module);
-      right = ctx.createIdentifier(
-        ctx.getModuleReferenceName(origin, stack.module, stack)
-      );
+      if (stack.right.hasLocalDefined()) {
+        right = ctx.createIdentifier(origin.id);
+      } else {
+        right = ctx.createIdentifier(
+          ctx.getModuleReferenceName(origin, stack.module, stack)
+        );
+      }
     }
     if (!right) {
       right = ctx.createIdentifier("Object");
@@ -5989,7 +6110,7 @@ function BreakStatement_default(ctx, stack) {
 }
 
 // lib/tokens/CallExpression.js
-var import_Utils10 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils12 = __toESM(require("easescript/lib/core/Utils"));
 function CallExpression_default(ctx, stack) {
   const isMember = stack.callee.isMemberExpression;
   const desc = stack.descriptor();
@@ -6049,7 +6170,7 @@ function CallExpression_default(ctx, stack) {
   }
   const privateChain = ctx.options.privateChain;
   if (privateChain && desc && desc.isMethodDefinition && !(desc.static || desc.module.static)) {
-    const modifier = import_Utils10.default.getModifierValue(desc);
+    const modifier = import_Utils12.default.getModifierValue(desc);
     const refModule = desc.module;
     if (modifier === "private" && refModule.children.length > 0) {
       return ctx.createCallExpression(
@@ -6067,7 +6188,7 @@ function CallExpression_default(ctx, stack) {
   if (desc) {
     let type = desc.isCallDefinition ? desc.module : desc;
     if (!isMember && !stack.callee.isSuperExpression && desc.isMethodDefinition) type = desc.module;
-    if (import_Utils10.default.isTypeModule(type)) {
+    if (import_Utils12.default.isTypeModule(type)) {
       ctx.addDepend(desc, module2);
     }
   }
@@ -6086,7 +6207,7 @@ function ChainExpression_default(ctx, stack) {
 }
 
 // lib/core/ClassBuilder.js
-var import_Utils11 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils13 = __toESM(require("easescript/lib/core/Utils"));
 var import_Namespace4 = __toESM(require("easescript/lib/core/Namespace"));
 var modifierMaps = {
   "public": MODIFIER_PUBLIC,
@@ -6141,6 +6262,7 @@ var ClassBuilder = class {
     ctx.setNode(this.stack, this);
     const module2 = this.module;
     const stack = this.stack;
+    const classComments = createCommentsNode(ctx, stack);
     this.useClassConstructor = ctx.useClassConstructor(module2);
     this.setModuleIdNode(ctx.createIdentifier(this.getModuleDeclarationId(module2), stack.id));
     this.createInherit(ctx, module2, stack);
@@ -6151,7 +6273,7 @@ var ClassBuilder = class {
     const creator = this.createCreator(
       ctx,
       this.getModuleIdNode(),
-      this.createClassDescriptor(ctx, module2, methods, members)
+      this.createClassDescriptor(ctx, module2, methods, members, classComments)
     );
     ctx.crateModuleAssets(module2);
     ctx.createModuleImportReferences(module2);
@@ -6164,7 +6286,6 @@ var ClassBuilder = class {
     }
     if (this.construct) {
       let exists = this.construct.comments;
-      let classComments = createCommentsNode(ctx, stack);
       if (!exists) {
         this.construct.comments = classComments;
       } else if (exists && classComments) {
@@ -6249,9 +6370,9 @@ var ClassBuilder = class {
       if (ctx.isActiveModule(inherit, module2, true)) {
         ctx.addDepend(inherit, module2);
         let refs = null;
-        if (inherit.isDeclaratorModule && stack && import_Utils11.default.isStack(stack.inherit) && stack.inherit.isIdentifier) {
+        if (inherit.isDeclaratorModule && stack && import_Utils13.default.isStack(stack.inherit) && stack.inherit.isIdentifier) {
           let desc = stack.inherit.description();
-          if (import_Utils11.default.isStack(desc) && desc.isDeclarator) {
+          if (import_Utils13.default.isStack(desc) && desc.isDeclarator) {
             refs = stack.inherit.value();
           }
         }
@@ -6265,7 +6386,7 @@ var ClassBuilder = class {
   createImplements(ctx, module2, stack = null) {
     let iteratorModule = null;
     this.implements = module2.implements.map((impModule) => {
-      if (impModule.isInterface && ctx.isActiveModule(impModule, module2, true)) {
+      if (impModule.isInterface && !impModule.isStructTable && ctx.isActiveModule(impModule, module2, true)) {
         iteratorModule = iteratorModule || import_Namespace4.default.globals.get("Iterator");
         if (iteratorModule !== impModule) {
           ctx.addDepend(impModule, module2);
@@ -6274,7 +6395,7 @@ var ClassBuilder = class {
             let impStack = stack.implements.find((imp) => imp.type() === impModule);
             if (impStack && impStack.isIdentifier) {
               let desc = impStack.description();
-              if (import_Utils11.default.isStack(desc) && desc.isDeclarator) {
+              if (import_Utils13.default.isStack(desc) && desc.isDeclarator) {
                 refs = impStack.value();
               }
             }
@@ -6356,7 +6477,7 @@ var ClassBuilder = class {
       let identifier = this.stack.inherit;
       if (identifier && identifier.isIdentifier) {
         let desc = identifier.description();
-        if (import_Utils11.default.isStack(desc) && desc.isDeclarator) {
+        if (import_Utils13.default.isStack(desc) && desc.isDeclarator) {
           refs = identifier.value();
         }
       }
@@ -6435,11 +6556,15 @@ var ClassBuilder = class {
         els.push(this.createCallSuperNode(ctx));
         construct.hasCallSupper = true;
       }
-      els.push(...this.initProperties);
       const privateChainNode = this.appendDefinePrivatePropertyNode(ctx, ...this.privateProperties);
       if (privateChainNode) {
-        els.push(privateChainNode);
+        if (this.useClassConstructor) {
+          els.push(privateChainNode);
+        } else {
+          body.unshift(privateChainNode);
+        }
       }
+      els.push(...this.initProperties);
       body.splice(appendAt, 0, ...els);
     }
   }
@@ -6487,15 +6612,22 @@ var ClassBuilder = class {
             isAccessor: true,
             kind: "accessor",
             key: child.key,
-            modifier: child.modifier
+            modifier: child.modifier,
+            question: child.question
           };
           dataset2.set(name, target);
           refs.push(target);
         }
         if (item.isMethodGetterDefinition) {
           target.get = child;
+          if (!target.question) {
+            target.question = child.question;
+          }
         } else if (item.isMethodSetterDefinition) {
           target.set = child;
+          if (!target.question) {
+            target.question = child.question;
+          }
         }
       } else if (item.isConstructor && item.isMethodDefinition) {
         this.construct = child;
@@ -6551,9 +6683,9 @@ var ClassBuilder = class {
     let refs = null;
     let inheritStack = this.stack.inherit;
     let inherit = this.module.inherit;
-    if (inherit.isDeclaratorModule && import_Utils11.default.isStack(inheritStack) && inheritStack.isIdentifier) {
+    if (inherit.isDeclaratorModule && import_Utils13.default.isStack(inheritStack) && inheritStack.isIdentifier) {
       let desc = inheritStack.description();
-      if (import_Utils11.default.isStack(desc) && desc.isDeclarator) {
+      if (import_Utils13.default.isStack(desc) && desc.isDeclarator) {
         refs = inheritStack.value();
       }
     }
@@ -6631,6 +6763,9 @@ var ClassBuilder = class {
     if (node.isFinal) {
       mode |= MODIFIER_FINAL;
     }
+    if (node.question) {
+      mode |= MODIFIER_OPTIONAL;
+    }
     delete node.static;
     if (node.type === "MethodDefinition" || node.kind === "method") {
       node.kind = "";
@@ -6677,7 +6812,10 @@ var ClassBuilder = class {
     let decorators = node.decorators;
     if (node.isAccessor) {
       decorators = [];
+      let getComments = null;
+      let setComments = null;
       if (node.get) {
+        getComments = node.get.comments;
         if (node.get.isConfigurable) isConfigurable = true;
         node.get.disabledNewLine = true;
         delete node.get.static;
@@ -6687,6 +6825,7 @@ var ClassBuilder = class {
         }
       }
       if (node.set) {
+        setComments = node.set.comments;
         if (node.set.isConfigurable) isConfigurable = true;
         node.set.disabledNewLine = true;
         delete node.set.static;
@@ -6695,10 +6834,43 @@ var ClassBuilder = class {
           decorators.push(...node.set.decorators);
         }
       }
+      if (getComments || setComments) {
+        const commentsProperties = [];
+        if (getComments) {
+          commentsProperties.push(
+            ctx.createProperty(
+              ctx.createIdentifier("get"),
+              ctx.createChunkExpression(JSON.stringify(getComments.value), false)
+            )
+          );
+        }
+        if (setComments) {
+          commentsProperties.push(
+            ctx.createProperty(
+              ctx.createIdentifier("set"),
+              ctx.createChunkExpression(JSON.stringify(setComments.value), false)
+            )
+          );
+        }
+        properties2.push(
+          ctx.createProperty(
+            ctx.createIdentifier("comments"),
+            ctx.createObjectExpression(commentsProperties)
+          )
+        );
+      }
     } else {
+      if (node.comments) {
+        properties2.push(
+          ctx.createProperty(
+            ctx.createIdentifier("comments"),
+            ctx.createChunkExpression(JSON.stringify(node.comments.value), false)
+          )
+        );
+      }
       if (node.type === "PropertyDefinition") {
         if (node.init) {
-          properties2.push(createProperty("value", node.init, node));
+          properties2.push(createProperty("value", node.init));
         }
       } else {
         properties2.push(createProperty("value", node));
@@ -6712,17 +6884,20 @@ var ClassBuilder = class {
         )
       );
     }
-    return ctx.createProperty(
+    const confitNode = ctx.createObjectExpression(properties2);
+    const propertyNode = ctx.createProperty(
       key,
-      this.createMemberDecorator(
+      decorators && decorators.length > 0 ? this.createMemberDecorator(
         ctx,
         decorators,
         ctx.createLiteral(key.value),
-        ctx.createObjectExpression(properties2)
-      )
+        confitNode
+      ) : confitNode
     );
+    propertyNode.comments = node.comments;
+    return propertyNode;
   }
-  createClassDescriptor(ctx, module2, methods, members) {
+  createClassDescriptor(ctx, module2, methods, members, classComments) {
     const properties2 = [];
     let kind = module2.isEnum ? KIND_CLASS : module2.isStructTable ? KIND_STRUCT : module2.isInterface ? KIND_INTERFACE : KIND_CLASS;
     kind |= MODIFIER_PUBLIC;
@@ -6741,6 +6916,14 @@ var ClassBuilder = class {
         ctx.createLiteral(kind)
       )
     );
+    if (classComments && classComments.value) {
+      properties2.push(
+        ctx.createProperty(
+          ctx.createIdentifier("comments"),
+          ctx.createChunkExpression(JSON.stringify(classComments.value), false)
+        )
+      );
+    }
     const ns = module2.namespace && module2.namespace.toString();
     if (ns) {
       properties2.push(
@@ -6821,7 +7004,7 @@ var ClassBuilder = class {
     let type = desc.type();
     let isCallee = annot.isCallee();
     let callee = null;
-    if (import_Utils11.default.isModule(type)) {
+    if (import_Utils13.default.isModule(type)) {
       type.getDescriptor("constructor", (desc2) => {
         let type2 = desc2.getFunType().getReturnedType();
         if (type2 && type2.isFunctionType) return isCallee = true;
@@ -7216,10 +7399,10 @@ function ForInStatement_default(ctx, stack) {
 }
 
 // lib/tokens/ForOfStatement.js
-var import_Utils12 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils14 = __toESM(require("easescript/lib/core/Utils"));
 function ForOfStatement_default(ctx, stack) {
-  const type = import_Utils12.default.getOriginType(stack.right.type());
-  if (import_Utils12.default.isLocalModule(type) || stack.right.type().isAnyType) {
+  const type = import_Utils14.default.getOriginType(stack.right.type());
+  if (import_Utils14.default.isLocalModule(type) || stack.right.type().isAnyType) {
     const node2 = ctx.createNode(stack, "ForStatement");
     const obj = ctx.getLocalRefName(stack, "_i");
     const res = ctx.getLocalRefName(stack, "_v");
@@ -7286,11 +7469,11 @@ function FunctionDeclaration_default(ctx, stack, type) {
 }
 
 // lib/tokens/Identifier.js
-var import_Utils13 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils15 = __toESM(require("easescript/lib/core/Utils"));
 function Identifier_default(ctx, stack) {
   const desc = stack.parentStack && stack.parentStack.isImportSpecifier ? null : stack.descriptor();
   const module2 = stack.module;
-  if (import_Utils13.default.isStack(desc) && (desc.isDeclaratorVariable || desc.isDeclaratorFunction)) {
+  if (import_Utils15.default.isStack(desc) && (desc.isDeclaratorVariable || desc.isDeclaratorFunction)) {
     let imports = desc.imports;
     if (Array.isArray(imports)) {
       imports.forEach((item) => {
@@ -7305,7 +7488,7 @@ function Identifier_default(ctx, stack) {
     const ownerModule = desc.module;
     const isStatic = !!(desc.static || ownerModule.static || desc.isEnumProperty);
     const property = ctx.createIdentifier(stack.value(), stack);
-    const modifier = import_Utils13.default.getModifierValue(desc);
+    const modifier = import_Utils15.default.getModifierValue(desc);
     let object = isStatic ? ctx.createIdentifier(ownerModule.id) : ctx.createThisExpression();
     if (privateChain && desc.isPropertyDefinition && modifier === "private" && !isStatic) {
       object = ctx.createMemberExpression([
@@ -7321,7 +7504,7 @@ function Identifier_default(ctx, stack) {
       return ctx.createMemberExpression([object, property], stack);
     }
   }
-  if (desc !== stack.module && (import_Utils13.default.isClassType(desc) || import_Utils13.default.isInterface(desc) && !desc.isStructTable)) {
+  if (desc !== stack.module && (import_Utils15.default.isClassType(desc) || import_Utils15.default.isInterface(desc) && !desc.isStructTable)) {
     ctx.addDepend(desc, stack.module);
     if (!stack.hasLocalDefined()) {
       return ctx.createIdentifier(
@@ -7385,6 +7568,7 @@ function ImportSpecifier_default(ctx, stack) {
 }
 
 // lib/core/InterfaceBuilder.js
+var import_Utils16 = __toESM(require("easescript/lib/core/Utils.js"));
 var modifierMaps2 = {
   "public": MODIFIER_PUBLIC,
   "protected": MODIFIER_PROTECTED,
@@ -7435,14 +7619,60 @@ var InterfaceBuilder = class extends ClassBuilder_default {
     this.createMemebers(ctx, stack);
     this.construct = this.createDefaultConstructor(ctx, module2.id, module2.inherit);
   }
+  createInitMemberProperty() {
+  }
   createMemeber(ctx, stack, staticFlag = false) {
     if (this.isStructTable) {
       if (stack.isStructTableColumnDefinition) {
         const node = ctx.createNode(stack, "PropertyDefinition");
+        const typeName = import_Utils16.default.getStructTableMethodTypeName(stack.typename?.value() || "varchar");
+        let defaultValue = null;
+        if (stack.properties) {
+          const defaultProperty = stack.properties.find((prop) => {
+            if (!prop.isStructTablePropertyDefinition) return false;
+            return prop.key.isIdentifier && prop.init && String(prop.key.value()).toLowerCase() === "default";
+          });
+          if (defaultProperty) {
+            const initStack = defaultProperty.init;
+            if (initStack.isMemberExpression) {
+              const desc = initStack.description();
+              if (desc && desc.isEnumProperty) {
+                defaultValue = ctx.createLiteral(String(desc.init.value()));
+              }
+            } else if (initStack.isLiteral) {
+              defaultValue = ctx.createToken(initStack);
+            }
+          }
+        }
         node.modifier = "public";
         node.kind = "column";
         node.key = ctx.createIdentifier(stack.key.value(), stack.key);
         node.comments = createCommentsNode(ctx, stack);
+        node.question = !!stack.question;
+        node.init = defaultValue || ctx.createLiteral(typeName === "string" ? "" : null);
+        let format = "* @Formal(varchar,255)";
+        let defaultV = defaultValue && defaultValue.type === "Literal" ? defaultValue.value : null;
+        if (stack.typename) {
+          const formatNode = ctx.createToken(stack.typename);
+          const generator = new Generator_default();
+          if (formatNode.type === "StructTableMethodDefinition") {
+            generator.withSequence([formatNode.key, ...formatNode.params]);
+          } else {
+            generator.make(formatNode);
+          }
+          format = `* @Formal(${generator.toString()})`;
+        }
+        let comments = [stack.question ? "* @Optional" : "* @Requred", format];
+        if (defaultV) {
+          comments.push('* @Default "' + String(defaultV) + '"');
+        }
+        if (node.comments) {
+          const lines = String(node.comments.value).split(/[\r\n]+/);
+          lines.splice(lines.length - 2, 0, ...comments);
+          node.comments.value = lines.join("\n");
+        } else {
+          node.comments = ctx.createChunkExpression(["/**", ...comments, "**/"].join("\n"));
+        }
         return node;
       }
       return null;
@@ -7471,6 +7701,9 @@ var InterfaceBuilder = class extends ClassBuilder_default {
     if (node.isFinal) {
       mode |= MODIFIER_FINAL;
     }
+    if (node.question) {
+      mode |= MODIFIER_OPTIONAL;
+    }
     properties2.push(
       ctx.createProperty(
         ctx.createIdentifier("m"),
@@ -7478,27 +7711,85 @@ var InterfaceBuilder = class extends ClassBuilder_default {
       )
     );
     if (node.isAccessor) {
+      let getComments = null;
+      let setComments = null;
       if (node.get) {
-        properties2.push(
-          ctx.createProperty(
-            ctx.createIdentifier("get"),
-            ctx.createLiteral(true)
-          )
-        );
+        getComments = node.get.comments;
+        properties2.push(ctx.createProperty(
+          ctx.createIdentifier("get"),
+          ctx.createLiteral(true)
+        ));
       }
       if (node.set) {
+        setComments = node.get.comments;
+        properties2.push(ctx.createProperty(
+          ctx.createIdentifier("set"),
+          ctx.createLiteral(true)
+        ));
+      }
+      if (getComments || setComments) {
+        const commentsProperties = [];
+        if (getComments) {
+          commentsProperties.push(
+            ctx.createProperty(
+              ctx.createIdentifier("get"),
+              ctx.createChunkExpression(JSON.stringify(getComments.value), false)
+            )
+          );
+        }
+        if (setComments) {
+          commentsProperties.push(
+            ctx.createProperty(
+              ctx.createIdentifier("set"),
+              ctx.createChunkExpression(JSON.stringify(setComments.value), false)
+            )
+          );
+        }
         properties2.push(
           ctx.createProperty(
-            ctx.createIdentifier("set"),
-            ctx.createLiteral(true)
+            ctx.createIdentifier("comments"),
+            ctx.createObjectExpression(commentsProperties)
           )
         );
       }
+    } else {
+      if (node.comments) {
+        properties2.push(
+          ctx.createProperty(
+            ctx.createIdentifier("comments"),
+            ctx.createChunkExpression(JSON.stringify(node.comments.value), false)
+          )
+        );
+      }
+      if (this.isStructTable) {
+        if (node.type === "PropertyDefinition") {
+          properties2.push(
+            ctx.createProperty(
+              ctx.createIdentifier("writable"),
+              ctx.createLiteral(true)
+            )
+          );
+          properties2.push(
+            ctx.createProperty(
+              ctx.createIdentifier("enumerable"),
+              ctx.createLiteral(true)
+            )
+          );
+          if (node.init) {
+            properties2.push(ctx.createProperty(
+              ctx.createIdentifier("value"),
+              node.init
+            ));
+          }
+        }
+      }
     }
-    return ctx.createProperty(
+    const propertyNode = ctx.createProperty(
       key,
       ctx.createObjectExpression(properties2)
     );
+    propertyNode.comments = node.comments;
+    return propertyNode;
   }
 };
 var InterfaceBuilder_default = InterfaceBuilder;
@@ -7593,7 +7884,7 @@ function JSXClosingFragment_default(ctx, stack) {
 
 // lib/core/ESX.js
 var import_Namespace7 = __toESM(require("easescript/lib/core/Namespace"));
-var import_Utils14 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils17 = __toESM(require("easescript/lib/core/Utils"));
 function createFragmentVNode(ctx, children, props = null) {
   const items = [
     ctx.createIdentifier(ctx.getVNodeApi("Fragment")),
@@ -7714,7 +8005,7 @@ function createForEachNode(ctx, refs, element, item, key, stack) {
   return node;
 }
 function getComponentDirectiveAnnotation(module2) {
-  if (!import_Utils14.default.isModule(module2)) return null;
+  if (!import_Utils17.default.isModule(module2)) return null;
   const annots = getModuleAnnotations(module2, ["define"]);
   for (let annot of annots) {
     const args = annot.getArguments();
@@ -7730,7 +8021,7 @@ function getComponentDirectiveAnnotation(module2) {
 }
 var directiveInterface = null;
 function isDirectiveInterface(module2) {
-  if (!import_Utils14.default.isModule(module2)) return false;
+  if (!import_Utils17.default.isModule(module2)) return false;
   directiveInterface = directiveInterface || import_Namespace7.default.globals.get("web.components.Directive");
   if (directiveInterface && directiveInterface.isInterface) {
     return directiveInterface.type().isof(module2);
@@ -7738,7 +8029,7 @@ function isDirectiveInterface(module2) {
   return false;
 }
 function getComponentEmitAnnotation(module2) {
-  if (!import_Utils14.default.isModule(module2)) return null;
+  if (!import_Utils17.default.isModule(module2)) return null;
   const dataset2 = /* @__PURE__ */ Object.create(null);
   const annots = getModuleAnnotations(module2, ["define"]);
   annots.forEach((annot) => {
@@ -8098,7 +8389,7 @@ function createElementPropsNode(ctx, data, stack, excludes = null) {
   const props = items.length > 0 ? ctx.createObjectExpression(items) : null;
   if (props && stack && stack.isComponent) {
     const desc = stack.descriptor();
-    if (desc && import_Utils14.default.isModule(desc)) {
+    if (desc && import_Utils17.default.isModule(desc)) {
       let has = getModuleAnnotations(desc, ["hook"]).some((annot) => {
         let result = parseHookAnnotation(annot, ctx.plugin.version, ctx.options.metadata.versions);
         return result && result.type === "polyfills:props";
@@ -8722,7 +9013,7 @@ function createElementNode(ctx, stack, data, children) {
       let desc = stack.description();
       let isVar = stack.is(desc) && desc.isDeclarator;
       if (!isVar) desc = desc.type();
-      if (!isVar && import_Utils14.default.isModule(desc)) {
+      if (!isVar && import_Utils17.default.isModule(desc)) {
         ctx.addDepend(desc, stack.module);
         name = ctx.createIdentifier(
           ctx.getModuleReferenceName(desc, stack.module)
@@ -8886,14 +9177,14 @@ function JSXEmptyExpression_default(ctx, stack) {
 
 // lib/tokens/JSXExpressionContainer.js
 var import_Namespace8 = __toESM(require("easescript/lib/core/Namespace"));
-var import_Utils15 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils18 = __toESM(require("easescript/lib/core/Utils"));
 function checkVNodeType(type) {
   if (!type || type.isAnyType) return false;
   if (type.isUnionType) {
     return type.elements.every((el) => checkVNodeType(el.type()));
   }
-  let origin = import_Utils15.default.getOriginType(type);
-  if (origin && import_Utils15.default.isModule(origin)) {
+  let origin = import_Utils18.default.getOriginType(type);
+  if (origin && import_Utils18.default.isModule(origin)) {
     if (origin.isWebComponent() || import_Namespace8.default.globals.get("VNode").is(origin)) {
       return true;
     }
@@ -8923,7 +9214,7 @@ function JSXExpressionContainer_default(ctx, stack) {
   if (node) {
     let isExplicitVNode = false;
     let type = stack.expression.type();
-    let isScalar = stack.expression.isLiteral || import_Utils15.default.isScalar(type);
+    let isScalar = stack.expression.isLiteral || import_Utils18.default.isScalar(type);
     if (type && !isScalar) {
       isExplicitVNode = checkVNodeType(type);
     }
@@ -9065,9 +9356,10 @@ function LogicalExpression_default(ctx, stack) {
 }
 
 // lib/tokens/MemberExpression.js
-var import_Utils16 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils19 = __toESM(require("easescript/lib/core/Utils"));
+var import_Namespace9 = __toESM(require("easescript/lib/core/Namespace"));
 function addImportReference(ctx, desc, module2) {
-  if (import_Utils16.default.isStack(desc) && (desc.isDeclaratorVariable || desc.isDeclaratorFunction)) {
+  if (import_Utils19.default.isStack(desc) && (desc.isDeclaratorVariable || desc.isDeclaratorFunction)) {
     let imports = desc.imports;
     if (Array.isArray(imports)) {
       imports.forEach((item) => {
@@ -9086,23 +9378,23 @@ function MemberExpression(ctx, stack) {
   const module2 = stack.module;
   const description = stack.descriptor();
   const objectType = stack.object.type();
-  if (description && description.isModule && objectType && !objectType.isLiteralObjectType && import_Utils16.default.isTypeModule(description)) {
+  if (stack.object.isIdentifier && import_Utils19.default.isTypeModule(description) && description.id === stack.object.value()) {
     ctx.addDepend(description, stack.module);
   } else {
     const objectDescriptor = stack.object.descriptor();
-    if (import_Utils16.default.isTypeModule(objectDescriptor)) {
+    if (import_Utils19.default.isTypeModule(objectDescriptor)) {
       ctx.addDepend(objectDescriptor, stack.module);
     } else {
       addImportReference(ctx, objectDescriptor, module2 || stack.compilation);
       addImportReference(ctx, description, module2 || stack.compilation);
     }
   }
-  if (!description || import_Utils16.default.isType(description) && description.isAnyType && !stack.optional) {
+  if (!description || import_Utils19.default.isType(description) && description.isAnyType && !stack.optional) {
     let isReflect = true;
     if (description) {
       isReflect = false;
       let hasDynamic = description.isComputeType && description.isPropertyExists();
-      if (!hasDynamic && !import_Utils16.default.isLiteralObjectType(objectType)) {
+      if (!hasDynamic && !import_Utils19.default.isLiteralObjectType(objectType)) {
         isReflect = true;
       }
     }
@@ -9121,7 +9413,7 @@ function MemberExpression(ctx, stack) {
   const resolveName = getMethodOrPropertyAlias(ctx, description);
   const privateChain = ctx.options.privateChain;
   if (privateChain && description && description.isMethodDefinition && !(description.static || description.module.static)) {
-    const modifier = import_Utils16.default.getModifierValue(description);
+    const modifier = import_Utils19.default.getModifierValue(description);
     const refModule = description.module;
     if (modifier === "private" && refModule.children.length > 0) {
       let property = resolveName ? ctx.createIdentifier(resolveName, stack.property) : ctx.createToken(stack.property);
@@ -9135,7 +9427,7 @@ function MemberExpression(ctx, stack) {
       );
     }
   }
-  if (objectType && !objectType.isLiteralObjectType && (import_Utils16.default.isClassType(description) || import_Utils16.default.isInterface(description) && !description.isStructTable)) {
+  if (objectType && import_Namespace9.default.is(objectType) && (import_Utils19.default.isClassType(description) || import_Utils19.default.isInterface(description) && !description.isStructTable)) {
     ctx.addDepend(description, stack.module);
     if (!stack.hasMatchAutoImporter) {
       return ctx.createIdentifier(
@@ -9190,7 +9482,7 @@ function MemberExpression(ctx, stack) {
   }
   let propertyNode = resolveName ? ctx.createIdentifier(resolveName, stack.property) : ctx.createToken(stack.property);
   if (privateChain && description && description.isPropertyDefinition && !(description.static || description.module.static)) {
-    const modifier = import_Utils16.default.getModifierValue(description);
+    const modifier = import_Utils19.default.getModifierValue(description);
     if ("private" === modifier) {
       const object = ctx.createMemberExpression([
         ctx.createToken(stack.object),
@@ -9215,16 +9507,17 @@ function MemberExpression(ctx, stack) {
 var MemberExpression_default = MemberExpression;
 
 // lib/tokens/MethodDefinition.js
-var import_Utils17 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils20 = __toESM(require("easescript/lib/core/Utils"));
 function MethodDefinition_default(ctx, stack, type) {
   const node = FunctionDeclaration_default(ctx, stack, type);
   node.async = stack.expression.async ? true : false;
   node.static = !!stack.static;
-  node.modifier = import_Utils17.default.getModifierValue(stack);
+  node.modifier = import_Utils20.default.getModifierValue(stack);
   node.kind = "method";
   node.isAbstract = !!stack.isAbstract;
   node.isFinal = !!stack.isFinal;
   node.comments = createCommentsNode(ctx, stack, node);
+  node.question = !!stack.question;
   return node;
 }
 
@@ -9243,11 +9536,11 @@ function MethodSetterDefinition_default(ctx, stack, type) {
 }
 
 // lib/tokens/NewExpression.js
-var import_Utils18 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils21 = __toESM(require("easescript/lib/core/Utils"));
 function NewExpression_default(ctx, stack) {
   let desc = stack.callee.type();
-  desc = import_Utils18.default.getOriginType(desc);
-  if (desc !== stack.module && import_Utils18.default.isTypeModule(desc)) {
+  desc = import_Utils21.default.getOriginType(desc);
+  if (desc !== stack.module && import_Utils21.default.isTypeModule(desc)) {
     ctx.addDepend(desc, stack.module);
   }
   const node = ctx.createNode(stack);
@@ -9307,7 +9600,7 @@ function Property_default(ctx, stack) {
 }
 
 // lib/tokens/PropertyDefinition.js
-var import_Utils19 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils22 = __toESM(require("easescript/lib/core/Utils"));
 function PropertyDefinition_default(ctx, stack) {
   let init = null;
   if (stack.annotations && stack.annotations.length > 0) {
@@ -9338,7 +9631,7 @@ function PropertyDefinition_default(ctx, stack) {
   }
   const node = ctx.createNode(stack);
   const decl = ctx.createToken(stack.declarations[0]);
-  node.modifier = import_Utils19.default.getModifierValue(stack);
+  node.modifier = import_Utils22.default.getModifierValue(stack);
   node.static = !!stack.static;
   node.kind = stack.kind;
   node.key = decl.id;
@@ -9347,6 +9640,7 @@ function PropertyDefinition_default(ctx, stack) {
   node.isAbstract = !!stack.isAbstract;
   node.isFinal = !!stack.isFinal;
   node.comments = createCommentsNode(ctx, stack, node);
+  node.question = !!stack.question;
   return node;
 }
 
@@ -9399,6 +9693,17 @@ function StructTableColumnDefinition_default(ctx, stack) {
       node.properties.push(createIdentNode(ctx, item));
     });
   }
+  const defineAnnotations = getMethodAnnotations(stack, ["define"]);
+  node.order = 99;
+  if (defineAnnotations && defineAnnotations.length > 0) {
+    for (let defineAnnotation of defineAnnotations) {
+      const data = parseDefineAnnotation(defineAnnotation);
+      if (data && data.order != null) {
+        node.order = data.order;
+        break;
+      }
+    }
+  }
   return node;
 }
 
@@ -9419,26 +9724,40 @@ function StructTableKeyDefinition_default(ctx, stack) {
   node.prefix = key === "primary" || key === "key" ? null : ctx.createIdentifier("key");
   node.local = ctx.createToken(stack.local);
   node.properties = (stack.properties || []).map((item) => createIdentNode(ctx, item));
+  node.order = 999;
   return node;
 }
 
 // lib/tokens/StructTableMethodDefinition.js
-var import_Namespace9 = __toESM(require("easescript/lib/core/Namespace"));
+var import_Utils23 = __toESM(require("easescript/lib/core/Utils"));
 function createNode(ctx, item, isKey = false, toLower = false, type = null) {
   if (!item) return null;
   if (type === "enum") {
     if (item.isIdentifier || item.isMemberExpression) {
-      const type2 = import_Namespace9.default.globals.get(item.value());
+      const type2 = item.type();
       const list = [];
-      if (type2 && type2.isModule && type2.isEnum) {
-        Array.from(type2.descriptors.keys()).forEach((key) => {
-          const items = type2.descriptors.get(key);
-          const item2 = items.find((item3) => item3.isEnumProperty);
-          if (item2) {
-            list.push(ctx.createLiteral(item2.init.value()));
-          }
-        });
-      }
+      const make = (type3) => {
+        if (!type3) return;
+        if (type3.isIntersectionType) {
+          make(type3.left.type());
+          make(type3.right.type());
+        } else if (type3.isUnionType) {
+          type3.elements.forEach((item2) => make(item2.type()));
+        } else if (type3.isLiteralType && type3.value != null) {
+          list.push(ctx.createLiteral(String(type3.value)));
+        } else if (import_Utils23.default.isModule(type3) && type3.isEnum) {
+          Array.from(type3.descriptors.keys()).forEach((key) => {
+            const items = type3.descriptors.get(key);
+            const item2 = items.find((item3) => item3.isEnumProperty);
+            if (item2) {
+              list.push(ctx.createLiteral(String(item2.init.value())));
+            }
+          });
+        } else {
+          item.error(10115, item.value());
+        }
+      };
+      make(type2);
       return list;
     }
   }
@@ -9467,12 +9786,19 @@ function StructTablePropertyDefinition_default(ctx, stack) {
   const node = ctx.createNode(stack);
   node.assignment = !!stack.assignment;
   node.key = createIdentNode(ctx, stack.key);
-  node.init = createIdentNode(ctx, stack.init);
+  let init = null;
+  if (stack.init && stack.init.isMemberExpression) {
+    const desc = stack.init.description();
+    if (desc && desc.isEnumProperty) {
+      init = ctx.createLiteral(String(desc.init.value()));
+    }
+  }
+  node.init = init || createIdentNode(ctx, stack.init);
   return node;
 }
 
 // lib/tokens/SuperExpression.js
-var import_Utils20 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils24 = __toESM(require("easescript/lib/core/Utils"));
 function SuperExpression_default(ctx, stack) {
   const node = ctx.createNode(stack);
   if (stack.parentStack.isCallExpression && ctx.useClassConstructor(stack.module)) {
@@ -9486,7 +9812,7 @@ function SuperExpression_default(ctx, stack) {
       let identifier = stack.inherit;
       if (stack.inherit && stack.inherit.isIdentifier) {
         let desc = identifier.description();
-        if (import_Utils20.default.isStack(desc) && desc.isDeclarator) {
+        if (import_Utils24.default.isStack(desc) && desc.isDeclarator) {
           refs = stack.inherit.value();
         }
       }
@@ -9564,7 +9890,7 @@ function TypeTransformExpression_default(ctx, stack) {
 }
 
 // lib/tokens/UnaryExpression.js
-var import_Utils21 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils25 = __toESM(require("easescript/lib/core/Utils"));
 function UnaryExpression_default(ctx, stack) {
   const operator = stack.operator;
   const prefix = stack.prefix;
@@ -9572,7 +9898,7 @@ function UnaryExpression_default(ctx, stack) {
     const desc = stack.argument.description();
     if (desc && desc.isAnyType) {
       const hasDynamic = desc && desc.isComputeType && desc.isPropertyExists();
-      if (!hasDynamic && !import_Utils21.default.isLiteralObjectType(stack.argument.object.type())) {
+      if (!hasDynamic && !import_Utils25.default.isLiteralObjectType(stack.argument.object.type())) {
         const property = stack.argument.computed ? ctx.createToken(stack.argument.property) : ctx.createLiteral(
           stack.argument.property.value(),
           void 0,
@@ -9596,7 +9922,7 @@ function UnaryExpression_default(ctx, stack) {
 }
 
 // lib/tokens/UpdateExpression.js
-var import_Utils22 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils26 = __toESM(require("easescript/lib/core/Utils"));
 function UpdateExpression_default(ctx, stack) {
   const node = ctx.createNode(stack);
   const operator = stack.operator;
@@ -9609,11 +9935,11 @@ function UpdateExpression_default(ctx, stack) {
     let isReflect = false;
     if (stack.argument.computed) {
       const hasDynamic = desc && desc.isComputeType && desc.isPropertyExists();
-      if (!hasDynamic && !import_Utils22.default.isLiteralObjectType(stack.argument.object.type())) {
+      if (!hasDynamic && !import_Utils26.default.isLiteralObjectType(stack.argument.object.type())) {
         isReflect = true;
       }
     } else if (desc && desc.isAnyType) {
-      isReflect = !import_Utils22.default.isLiteralObjectType(stack.argument.object.type());
+      isReflect = !import_Utils26.default.isLiteralObjectType(stack.argument.object.type());
     }
     if (isReflect) {
       const method = operator === "++" ? "incre" : "decre";
@@ -9960,7 +10286,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
     const deps = /* @__PURE__ */ new Set();
     ctx.dependencies.forEach((dataset2) => {
       dataset2.forEach((dep) => {
-        if (import_Utils23.default.isModule(dep)) {
+        if (import_Utils27.default.isModule(dep)) {
           if (!dep.isStructTable && dep.isDeclaratorModule) {
             dep = ctx.getVModule(dep.getName());
             if (dep) {
@@ -9971,7 +10297,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
           }
         } else if (isVModule(dep)) {
           deps.add(dep);
-        } else if (import_Utils23.default.isCompilation(dep)) {
+        } else if (import_Utils27.default.isCompilation(dep)) {
           deps.add(dep);
         }
       });
@@ -10023,7 +10349,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
 }
 
 // lib/core/Polyfill.js
-var import_Utils24 = __toESM(require("easescript/lib/core/Utils"));
+var import_Utils28 = __toESM(require("easescript/lib/core/Utils"));
 var import_fs5 = __toESM(require("fs"));
 var import_path5 = __toESM(require("path"));
 var TAGS_REGEXP = /(?:[\r\n]+|^)\/\/\/(?:\s+)?<(references|namespaces|export|import|createClass)\s+(.*?)\/>/g;
@@ -10100,7 +10426,7 @@ function parsePolyfillModule(file, createVModule) {
   } else {
     vm.addExport("default", vm.id);
   }
-  vm.file = import_Utils24.default.normalizePath(file);
+  vm.file = import_Utils28.default.normalizePath(file);
   vm.setContent(content);
 }
 function createPolyfillModule(dirname, createVModule) {
@@ -10111,18 +10437,17 @@ function createPolyfillModule(dirname, createVModule) {
     throw new Error(`Polyfills directory does not exists. on '${dirname}'`);
   }
   import_fs5.default.readdirSync(dirname).forEach((filename) => {
-    const filepath2 = import_path5.default.join(dirname, filename);
-    if (import_fs5.default.statSync(filepath2).isFile()) {
-      parsePolyfillModule(filepath2, createVModule);
-    } else if (import_fs5.default.statSync(filepath2).isDirectory()) {
-      createPolyfillModule(filepath2, createVModule);
+    const filepath = import_path5.default.join(dirname, filename);
+    if (import_fs5.default.statSync(filepath).isFile()) {
+      parsePolyfillModule(filepath, createVModule);
+    } else if (import_fs5.default.statSync(filepath).isDirectory()) {
+      createPolyfillModule(filepath, createVModule);
     }
   });
 }
 
 // lib/core/Plugin.js
 var import_events = __toESM(require("events"));
-var import_Utils25 = __toESM(require("easescript/lib/core/Utils"));
 import_Diagnostic.default.register("transform", (definer) => {
   definer(
     1e4,
@@ -10198,6 +10523,11 @@ import_Diagnostic.default.register("transform", (definer) => {
     10114,
     `[es-transform] \u5728\u7ED1\u5B9A\u7684\u88C5\u9970\u5668\u4E2D\u4F20\u5165\u53C2\u6570\uFF0C\u9700\u8981\u5728\u88C5\u9970\u5668\u4E2D\u8FD4\u56DE\u4E00\u4E2A\u88C5\u9970\u5668\u51FD\u6570`,
     `[es-transform] To pass arguments in the bound decorator, need to return a decorator function in the decorator`
+  );
+  definer(
+    10115,
+    `[es-transform] \u5F15\u7528'%s'\u5FC5\u987B\u662F\u4E00\u4E2A\u679A\u4E3E\u7C7B`,
+    `[es-transform] References the '%s' must is a emun class`
   );
 });
 var plugins = /* @__PURE__ */ new Set();
@@ -10283,10 +10613,9 @@ var Plugin = class _Plugin extends import_events.default {
       this.records.delete(compilation);
       const cache = this.context.cache;
       if (cache) {
-        if (import_Utils25.default.isCompilation(compilation)) {
-          compilation.modules.forEach((module2) => cache.clear(module2));
-        }
+        const total = cache.records.size;
         cache.clear(compilation);
+        this.complier.printLogInfo(`[clear-records-cache] total:${total}, current:${cache.records.size} file:${compilation.file}`, "es-transform");
       }
     }
   }
@@ -10299,6 +10628,9 @@ var Plugin = class _Plugin extends import_events.default {
         this.clear(compilation);
         this.emit("compilation:changed", compilation);
       }
+    });
+    this.complier.on("onRefreshDone", (compilations) => {
+      this.emit("compilation:refresh", compilations);
     });
   }
   async init() {
@@ -10323,9 +10655,7 @@ var Plugin = class _Plugin extends import_events.default {
     if (this.#initialized) return;
     this.#complier = complier;
     await this.init();
-    if (this.options.mode === "development" || this.options.hot) {
-      this.watch();
-    }
+    this.watch();
     this.#initialized = true;
   }
   //当任务处理完成后调用。在加载插件或者打包插件时会调用这个方法，用来释放一些资源
@@ -10368,7 +10698,7 @@ var Plugin = class _Plugin extends import_events.default {
       let vm = this.context.virtuals.getVModule(vmId);
       if (vm) {
         compilation = vm;
-      } else {
+      } else if (!compilation.modules.has(vmId)) {
         throw new Error(`The '${vmId}' virtual module does not exists.`);
       }
     }

@@ -16,5 +16,15 @@ package com
         list(){
             return [];
         }
+
+        getNode(){
+            return [new PersonNode()]
+        }
+    }
+
+    class PersonNode{
+        test(){
+
+        }
     }
 }

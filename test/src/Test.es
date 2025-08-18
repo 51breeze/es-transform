@@ -5,10 +5,12 @@
 package;
 
 import com.TestInterface;
+import com.IElement;
 import Person;
 import Types;
 import unit.Param;
 import Reflect;
+import com.Person as ComPerson
 
 //@Embed(Types='img.png');
 import 'assets/style.css';
@@ -147,7 +149,15 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             const {name='none'} = spread;
             expect(name).toBe( 'name' );
 
+            expect(true).toBe( {type:'div'} is IElement)
+            expect(false).toBe( {} is IElement)
 
+            const person = new ComPerson()
+            const nodes = person.getNode()
+            if(person && nodes[0] === person){
+
+            }
+                        
         })
 
         it(`static get uuName accessor`, ()=>{

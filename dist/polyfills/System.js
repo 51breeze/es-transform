@@ -37,9 +37,11 @@ System.getIterator=function getIterator(object){
 System.is=function is(left,right){
     if(left==null || !right)return false;
     if(right === String){
-        return typeof left === 'string'
+        let type = typeof left;
+        return type === 'string' || type==='object' && type instanceof String;
     }else if(right===Number){
-        return typeof left === 'number';
+        let type = typeof left;
+        return type === 'number' || type==='object' && type instanceof Number;
     }else if(right===Function){
         return System.isFunction(left);
     }else if(right===Object){
@@ -66,7 +68,18 @@ System.is=function is(left,right){
                 }
                 return inherit ? check(Class.getClassDescriptor(inherit)) : false;
             })(description);
+        }else{
+            const descriptor = Class.getClassDescriptor(right);
+            if(descriptor && descriptor.members){
+                const members = descriptor.members;
+                const keys = Object.keys(members);
+                return keys.every(key=>{
+                    if(key in left)return true;
+                    return Class.isModifier('MODIFIER_OPTIONAL', members[key].m);
+                })
+            }
         }
+        return false;
     }
     return left instanceof right;
 }

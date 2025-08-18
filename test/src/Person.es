@@ -25,6 +25,8 @@ public class Person<T> extends Object implements TestInterface , Add
         name is Array;
         this is Person
         this is Add
+        const entity = new Add();
+        entity.load({id:1, age:'30', name:'jun',pwd:'sss123551111111', email:"fssdf@sdf.com"})
     }
 
     async asyncMethod(){
@@ -63,11 +65,15 @@ public class Person<T> extends Object implements TestInterface , Add
         return "sssss";
     }
 
-
+    /**
+    * Get name
+    */
     public get name():string{
         return this._name;
     }
-
+    /**
+    * Set name
+    */
     public set name(val:string){
         this._name = val;
     }

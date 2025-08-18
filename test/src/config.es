@@ -13,7 +13,11 @@ const config = {};
 config.env = 'prod';
 
 
-new Person()
+const person = new Person()
+const nodes = person.getNode()
+if(person && nodes[0] === person){
+
+}
 
 console.log( TestInterface , com.TestInterface2)
 
