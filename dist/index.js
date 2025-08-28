@@ -2409,7 +2409,7 @@ var ImportManage = class {
       const source = this.#locals.get(local);
       if (source) {
         if (source !== importSource) {
-          throw new Error(`declare '${local}' is not redefined`);
+          throw new Error(`declare '${local}' is redefined`);
         }
       } else {
         this.#locals.set(local, importSource);
@@ -6347,10 +6347,30 @@ var ClassBuilder = class {
         this.getExportReferenceNode()
       );
     } else {
-      ctx.addExport(
-        module2.id,
-        this.getExportReferenceNode()
-      );
+      const exportNode = this.getExportReferenceNode();
+      if (exportNode) {
+        if (exportNode.type === "Identifier") {
+          ctx.addExport(
+            module2.id,
+            exportNode
+          );
+        } else {
+          const refName = "__" + module2.id + "_export";
+          const refNode = ctx.createVariableDeclaration("const", [
+            ctx.createVariableDeclarator(
+              ctx.createIdentifier(refName),
+              exportNode
+            )
+          ]);
+          ctx.addNodeToAfterBody(refNode);
+          ctx.addExport(
+            module2.id,
+            ctx.createIdentifier(refName)
+          );
+        }
+      } else {
+        ctx.addExport(module2.id);
+      }
     }
   }
   createBody(ctx, module2, stack) {
@@ -8125,7 +8145,8 @@ function createChildNode(ctx, stack, childNode, prev = null) {
       cmd.push(name);
     } else if (name === "if") {
       const node = ctx.createNode("ConditionalExpression");
-      node.test = ctx.createToken(valueArgument.expression);
+      const test = ctx.createToken(valueArgument.expression);
+      node.test = test && test.type === "ConditionalExpression" ? ctx.createParenthesizedExpression(test) : test;
       node.consequent = content[0];
       content[0] = node;
       cmd.push(name);
@@ -8136,7 +8157,8 @@ function createChildNode(ctx, stack, childNode, prev = null) {
         cmd.push(name);
       }
       const node = ctx.createNode("ConditionalExpression");
-      node.test = ctx.createToken(valueArgument.expression);
+      const test = ctx.createToken(valueArgument.expression);
+      node.test = test && test.type === "ConditionalExpression" ? ctx.createParenthesizedExpression(test) : test;
       node.consequent = content[0];
       content[0] = node;
     } else if (name === "else") {
@@ -8760,19 +8782,29 @@ function createElementKeyPropertyNode(ctx, stack) {
       }
     }
     if (all || isCondition || fills.includes(direName)) {
-      let count = ctx.cache.get(stack.compilation, "createElementKeyPropertyNode::count");
-      if (count == null) count = 0;
-      ctx.cache.set(stack.compilation, "createElementKeyPropertyNode::count", ++count);
-      return ctx.createProperty(
-        ctx.createIdentifier("key"),
-        isForContext ? ctx.createBinaryExpression(
-          ctx.createLiteral(count + "-"),
-          ctx.createIdentifier(key || "key"),
-          "+"
-        ) : ctx.createLiteral(count)
+      return createElementKeyNode(ctx, stack, isForContext ? ctx.createIdentifier(key || "key") : null);
+    }
+  }
+}
+function createElementKeyNode(ctx, stack, prefixNode = null) {
+  let count = ctx.cache.get(stack.compilation, "createElementKeyPropertyNode::count");
+  if (count == null) count = 0;
+  ctx.cache.set(stack.compilation, "createElementKeyPropertyNode::count", ++count);
+  if (prefixNode) {
+    if (prefixNode.type === "Literal") {
+      prefixNode.value += "-" + count;
+    } else {
+      prefixNode = ctx.createBinaryExpression(
+        prefixNode,
+        ctx.createLiteral("-" + count),
+        "+"
       );
     }
   }
+  return ctx.createProperty(
+    ctx.createIdentifier("key"),
+    prefixNode || ctx.createLiteral(count)
+  );
 }
 function createComponentDirectiveProperties(ctx, stack, data, callback = null) {
   if (stack) {
@@ -8978,7 +9010,7 @@ function createDirectiveElementNode(ctx, stack, children) {
     case "elseif": {
       const condition = ctx.createToken(stack.attributes[0].parserAttributeValueStack());
       const node = ctx.createNode("ConditionalExpression");
-      node.test = condition;
+      node.test = condition && condition.type === "ConditionalExpression" ? ctx.createParenthesizedExpression(condition) : condition;
       node.consequent = children;
       return node;
     }
@@ -10712,7 +10744,7 @@ function getAllPlugin() {
 // package.json
 var package_default = {
   name: "@easescript/transform",
-  version: "0.1.2",
+  version: "0.2.0",
   description: "Code Transform Based For EaseScript Plugin",
   main: "dist/index.js",
   scripts: {
