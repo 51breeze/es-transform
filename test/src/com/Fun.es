@@ -8,7 +8,7 @@ function addParam(target, key, context){
     args.sort((a,b)=>a-b);
     let fn =  target.value;
     target.value = function checkParam(){
-        let _args = Array.from(arguments);
+        let _args = Array.from(arguments) as any[];
         args.forEach((val,index)=>{
             if(_args[index]==null){
                 _args[index] = `checkParam(${index}) 注入的默认参数`

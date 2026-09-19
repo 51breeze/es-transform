@@ -480,8 +480,7 @@ const _Reflect = (function(_Reflect){
 
     function isClass(objClass){
         if( !objClass || !objClass.constructor)return false;
-        var desc = Class.getClassDescriptor(objClass);
-        if( !desc )return isFun(objClass);
+        const desc = Class.getClassDescriptor(objClass);
         return desc && (desc.m & Reflect.KIND_CLASS) === Reflect.KIND_CLASS;
     }
 
@@ -585,7 +584,7 @@ const _Reflect = (function(_Reflect){
     };
 
     Reflect.construct=function construct(target, args, newTarget){
-        if( !isClass(target) )throw new TypeError('target is not instantiable object.');
+        if(!(isClass(target) || isFun(target)))throw new TypeError('target is not instantiable object.');
         return _construct(target, args || [], newTarget);
     };
 

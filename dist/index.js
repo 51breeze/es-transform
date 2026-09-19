@@ -2224,6 +2224,14 @@ function isExcludeDependency(excludes, source, module2 = null) {
   }
   return false;
 }
+function isGlobalsDependency(globals, source, module2 = null) {
+  if (Array.isArray(globals) && globals.length > 0) {
+    return globals.some((rule) => {
+      return rule == null ? false : checkMatchStringOfRule(rule, source, module2);
+    });
+  }
+  return false;
+}
 function getMethodOrPropertyAlias(ctx, stack, name = null) {
   if (Cache.has(stack, "getMethodOrPropertyAlias")) {
     return Cache.get(stack, "getMethodOrPropertyAlias");
@@ -2267,6 +2275,10 @@ function createJSXAttrHookNode(ctx, stack, desc) {
     let [type, annotation] = hookAnnot;
     let lower = type && String(type).toLowerCase();
     const hooks = ctx.options.hooks;
+    const disableHooks = hooks.disableHooks;
+    if (disableHooks && disableHooks[lower]) {
+      return null;
+    }
     let createdNode = null;
     if (hooks.createJSXAttrValue) {
       createdNode = hooks.createJSXAttrValue({ ctx, type, jsxAttrNode: stack, descriptor: desc, annotation });
@@ -2305,7 +2317,7 @@ function createJSXAttrHookNode(ctx, stack, desc) {
         }
         return null;
       }
-      if (type) {
+      if (type && stack.module && stack.isModuleForWebComponent(stack.module)) {
         const node = ctx.createCallExpression(
           ctx.createMemberExpression([
             ctx.createThisExpression(stack),
@@ -3294,7 +3306,11 @@ var Generator2 = class {
               this.make(property);
             } else {
               if (property.init && property.init.type === "AssignmentPattern") {
-                this.make(property.init);
+                if (property.key.value === property.init.left.value) {
+                  this.make(property.init);
+                } else {
+                  this.make(property);
+                }
               } else {
                 this.make(property.key);
                 if (property.init && property.key.value !== property.init.value) {
@@ -4537,8 +4553,8 @@ var Context = class _Context extends Token_default {
   createAllDependencies(cache = null) {
     const target = this.target;
     const compilation = import_Utils7.default.isCompilation(target) ? target : null;
-    this.#dependencies.forEach((deps, moduleOrCompi) => {
-      const graph = this.getBuildGraph(moduleOrCompi);
+    this.#dependencies.forEach((deps, moduleOrCompi2) => {
+      const graph = this.getBuildGraph(moduleOrCompi2);
       deps.forEach((depModule) => {
         if (cache && cache.has(depModule)) return;
         let isMod = import_Utils7.default.isModule(depModule);
@@ -4546,11 +4562,14 @@ var Context = class _Context extends Token_default {
         if (depModule === target || compilation && compilation.modules.has(depModule.getName())) {
           return;
         }
-        if (moduleOrCompi !== depModule && this.isNeedBuild(depModule)) {
+        if (moduleOrCompi2 !== depModule && this.isNeedBuild(depModule)) {
           graph.addDepend(depModule);
+          if (isGlobalsDependency(this.options.dependency.globals, depModule.getName(), moduleOrCompi2)) {
+            return;
+          }
           if (!depModule.isDeclaratorModule || this.isVModule(depModule)) {
-            const name = this.getModuleReferenceName(depModule, moduleOrCompi);
-            const source = this.getModuleImportSource(depModule, moduleOrCompi);
+            const name = this.getModuleReferenceName(depModule, moduleOrCompi2);
+            const source = this.getModuleImportSource(depModule, moduleOrCompi2);
             let imported = void 0;
             if (isMod && !depModule.isDeclaratorModule && depModule.compilation.mainModule !== depModule) {
               imported = depModule.id;
@@ -4559,7 +4578,7 @@ var Context = class _Context extends Token_default {
             importSource.setSourceTarget(depModule);
             graph.addImport(importSource);
           } else if (depModule.isDeclaratorModule) {
-            this.createDeclaratorModuleImportReferences(depModule, moduleOrCompi, graph);
+            this.createDeclaratorModuleImportReferences(depModule, moduleOrCompi2, graph);
           }
         }
       });
@@ -4578,6 +4597,9 @@ var Context = class _Context extends Token_default {
       }
       if (module2 !== depModule && this.isNeedBuild(depModule)) {
         graph.addDepend(depModule);
+        if (isGlobalsDependency(this.options.dependency.globals, depModule.getName(), moduleOrCompi)) {
+          return;
+        }
         if (!depModule.isDeclaratorModule || this.isVModule(depModule)) {
           const name = this.getModuleReferenceName(depModule, module2);
           const source = this.getModuleImportSource(depModule, module2);
@@ -4935,6 +4957,12 @@ var Context = class _Context extends Token_default {
   }
   isPermissibleRouteProvider(moduleOrMethodStack) {
     return false;
+  }
+  safeMemberAccessor() {
+    if (this.options.enableSafeChain === false) {
+      return false;
+    }
+    return !!(this.options.strict || this.options.privateChain);
   }
   createVNodeHandleNode(stack, ...args) {
     let handle = this.#vnodeHandleNode;
@@ -5954,7 +5982,7 @@ function AssignmentExpression_default(ctx, stack) {
       isReflect = !import_Utils10.default.isLiteralObjectType(stack.left.object.type());
     }
   }
-  if (isReflect) {
+  if (isReflect && ctx.safeMemberAccessor()) {
     let value = ctx.createToken(stack.right);
     let scopeId = module2 ? ctx.createIdentifier(module2.id) : ctx.createLiteral(null);
     let propertyNode = ctx.createLiteral(
@@ -6138,7 +6166,7 @@ function CallExpression_default(ctx, stack) {
       );
     }
   }
-  if (isMember && !isChainExpression && (!desc || desc.isType && desc.isAnyType)) {
+  if (isMember && !isChainExpression && (!desc || desc.isType && desc.isAnyType) && ctx.safeMemberAccessor()) {
     const property = stack.callee.computed ? ctx.createToken(stack.callee.property) : ctx.createLiteral(
       stack.callee.property.value()
     );
@@ -6645,11 +6673,17 @@ var ClassBuilder = class {
         }
         if (item.isMethodGetterDefinition) {
           target.get = child;
+          if (this.inherit && !target.set) {
+            target.set = this.createDefaultInheritAccessor(ctx, item, "setter");
+          }
           if (!target.question) {
             target.question = child.question;
           }
         } else if (item.isMethodSetterDefinition) {
           target.set = child;
+          if (this.inherit && !target.get) {
+            target.get = this.createDefaultInheritAccessor(ctx, item, "getter");
+          }
           if (!target.question) {
             target.question = child.question;
           }
@@ -6660,6 +6694,31 @@ var ClassBuilder = class {
         refs.push(child);
       }
     });
+  }
+  createDefaultInheritAccessor(ctx, methodStack, accessor) {
+    const inheritModule = methodStack.module && methodStack.module.inherit && methodStack.module.inherit.type();
+    if (inheritModule && !inheritModule.isDeclaratorModule) {
+      const key = methodStack.key.value();
+      const desc = inheritModule.getDescriptor(key, (desc2) => {
+        if (import_Utils13.default.isModifierPrivate(desc2)) {
+          return false;
+        }
+        if (accessor === "getter" && desc2.isMethodGetterDefinition || accessor === "setter" && desc2.isMethodSetterDefinition) {
+          return true;
+        }
+      });
+      if (desc) {
+        return ctx.createCallExpression(
+          createStaticReferenceNode(ctx, this.stack, "Class", "getMethod"),
+          [
+            this.inherit,
+            ctx.createLiteral(key),
+            ctx.createLiteral(accessor),
+            ctx.createIdentifier("true")
+          ]
+        );
+      }
+    }
   }
   createAnnotations(ctx, stack, node, staticFlag = false) {
     if (staticFlag && stack.isMethodDefinition && stack.isEnterMethod && node.modifier === "public" && !this.mainEnter) {
@@ -7953,7 +8012,7 @@ function createCommentVNode(ctx, text, asBlock = false) {
   );
 }
 function createSlotNode(ctx, stack, ...args) {
-  if (stack.isSlot && stack.isSlotDeclared) {
+  if (stack.isSlot && !stack.parentStack.isWebComponent) {
     const slots = ctx.createCallExpression(
       ctx.createMemberExpression([
         ctx.createThisExpression(),
@@ -9171,9 +9230,10 @@ function createElement(ctx, stack) {
     }
     if (data.slots) {
       for (let key in data.slots) {
+        const keyNode = key.includes("-") ? ctx.createLiteral(key) : ctx.createIdentifier(key);
         properties2.push(
           ctx.createProperty(
-            ctx.createIdentifier(key),
+            keyNode,
             data.slots[key]
           )
         );
@@ -9439,24 +9499,26 @@ function MemberExpression(ctx, stack) {
     }
   }
   if (!description || import_Utils19.default.isType(description) && description.isAnyType && !stack.optional) {
-    let isReflect = true;
-    if (description) {
-      isReflect = false;
-      let hasDynamic = description.isComputeType && description.isPropertyExists();
-      if (!hasDynamic && !import_Utils19.default.isLiteralObjectType(objectType)) {
-        isReflect = true;
+    if (ctx.safeMemberAccessor()) {
+      let isReflect = true;
+      if (description) {
+        isReflect = false;
+        let hasDynamic = description.isComputeType && description.isPropertyExists();
+        if (!hasDynamic && !import_Utils19.default.isLiteralObjectType(objectType)) {
+          isReflect = true;
+        }
       }
-    }
-    if (isReflect) {
-      return ctx.createCallExpression(
-        createStaticReferenceNode(ctx, stack, "Reflect", "get"),
-        [
-          module2 ? ctx.createIdentifier(module2.id) : ctx.createLiteral(null),
-          ctx.createToken(stack.object),
-          stack.computed ? ctx.createToken(stack.property) : ctx.createLiteral(stack.property.value())
-        ],
-        stack
-      );
+      if (isReflect) {
+        return ctx.createCallExpression(
+          createStaticReferenceNode(ctx, stack, "Reflect", "get"),
+          [
+            module2 ? ctx.createIdentifier(module2.id) : ctx.createLiteral(null),
+            ctx.createToken(stack.object),
+            stack.computed ? ctx.createToken(stack.property) : ctx.createLiteral(stack.property.value())
+          ],
+          stack
+        );
+      }
     }
   }
   const resolveName = getMethodOrPropertyAlias(ctx, description);
@@ -10761,7 +10823,7 @@ function getAllPlugin() {
 // package.json
 var package_default = {
   name: "@easescript/transform",
-  version: "0.2.0",
+  version: "0.2.1",
   description: "Code Transform Based For EaseScript Plugin",
   main: "dist/index.js",
   scripts: {
@@ -10840,7 +10902,8 @@ var defaultConfig = {
     only: false
   },
   hooks: {
-    createJSXAttrValue: ({ ctx, type, jsxAttrNode, descriptor, annotation }) => null
+    createJSXAttrValue: ({ ctx, type, jsxAttrNode, descriptor, annotation }) => null,
+    disableHooks: {}
   },
   esx: {
     enable: true,
@@ -10872,6 +10935,7 @@ var defaultConfig = {
     annotations: false
   },
   privateChain: true,
+  enableSafeChain: true,
   resolve: {
     imports: {},
     folders: {}
@@ -10879,7 +10943,8 @@ var defaultConfig = {
   dependency: {
     externals: [],
     includes: [],
-    excludes: []
+    excludes: [],
+    globals: []
   }
 };
 function getOptions(...options) {

@@ -102,6 +102,13 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         map.set('name', [] );
         map.forEach( item=>{})
         this.fn = ()=>1;
+        const tex = (this:Test<string>)=>{
+
+        }
+
+        function tt(this:Test<string>){
+            
+        }
     }
 
     @Alias(positionName, version='vue >= 3.0.0')
@@ -148,6 +155,12 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             const spread = {name:'name'}
             const {name='none'} = spread;
             expect(name).toBe( 'name' );
+            
+            const {name:_name='none'} = spread;
+            expect(_name).toBe( 'name' );
+
+            const {name8978:_names='none'} = spread;
+            expect(_names).toBe( 'none' );
 
             expect(true).toBe( {type:'div'} is IElement)
             expect(false).toBe( {} is IElement)
@@ -157,6 +170,9 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             if(person && nodes[0] === person){
 
             }
+            const exp = true
+            expect('S:工具调用执行成功。R:\`\`\`json true\`\`\`').toBe(`S:工具调用执行成功。R:\`\`\`json ${JSON.stringify(exp)}\`\`\``);
+            
                         
         })
 

@@ -8,7 +8,7 @@ class Decorator implements com.IDecorator{
         return function(target:Function){
             let isClass = target.toString().startsWith('class ');
             function Con(){
-                let _args = Array.from(arguments);
+                let _args = Array.from(arguments) as any[];
                 for(let i=0;i<des.length;i++){
                     if(_args[i]==null){
                         _args[i] = `Decorator(${des[i]}) 注入的默认参数`
